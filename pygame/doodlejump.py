@@ -1,3 +1,10 @@
+"""
+
+Initial Game Implementation from: https://github.com/f-prime/DoodleJump
+The implementation below is modified for our use.
+
+"""
+
 import pygame
 #from pygame.locals import *
 import sys
