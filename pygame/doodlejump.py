@@ -31,6 +31,7 @@ class DoodleJump:
         self.gravity = 0
         self.xmovement = 0
         self.die= 0
+        self.inter_platform_distance = 65
     
     def updatePlayer(self):
         if self.die==1:
@@ -78,12 +79,20 @@ class DoodleJump:
         for p in self.platforms:
             rect = pygame.Rect(p[0], p[1], self.green.get_width() - 10, self.green.get_height())
             player = pygame.Rect(self.playerx, self.playery, self.playerRight.get_width() - 10, self.playerRight.get_height())
+            
             if rect.colliderect(player) and self.gravity and self.playery < (p[1] - self.cameray):
                 if p[2] != 2:
                     self.jump = 15
                     self.gravity = 0
                 else:
-                    p[-1] = 1
+                    if p[-1] != 1:
+                        self.jump = 15 # jump even when you hit red broken platform
+                        p[-1] = 1
+                    else:
+                        self.jump = 0
+                    
+            
+            # moving blue platform left and right
             if p[2] == 1:
                 if p[-1] == 1:
                     p[0] += 5
@@ -107,15 +116,18 @@ class DoodleJump:
                 else:
                     platform = 2
 
-                self.platforms.append([random.randint(0, 700), self.platforms[-1][1] - 50, platform, 0])
+                self.platforms.append([random.randint(0, 700), self.platforms[-1][1] - self.inter_platform_distance, platform, 0])
                 coords = self.platforms[-1]
                 check = random.randint(0, 1000)
                 if check > 900 and platform == 0:
                     self.springs.append([coords[0], coords[1] - 25, 0])
-                elif check >800 and platform == 0:
-                    self.monsters.append([coords[0], coords[1] -25, 0])
+                
+                elif check>860 and platform == 0:
+                    self.monsters.append([coords[0], coords[1]- 50, 0])
+                
                 self.platforms.pop(0)
                 self.score += 100
+            
             if p[2] == 0:
                 self.screen.blit(self.green, (p[0], p[1] - self.cameray))
             elif p[2] == 1:
@@ -138,6 +150,7 @@ class DoodleJump:
             self.screen.blit(self.monster, (monster[0], monster[1] -self.cameray))
             if pygame.Rect(monster[0], monster[1], self.monster.get_width(), self.monster.get_height()).colliderect(pygame.Rect(self.playerx, self.playery, self.playerRight.get_width(), self.playerRight.get_height())):
                 self.die=1
+    
     def generatePlatforms(self):
         on = 600
         while on > -100:
@@ -150,7 +163,7 @@ class DoodleJump:
             else:
                 platform = 2
             self.platforms.append([x, on, platform, 0])
-            on -= 50
+            on -= self.inter_platform_distance
 
     def drawGrid(self):
         for x in range(80):
