@@ -5,7 +5,7 @@ import random
 
 class DoodleJump:
     def __init__(self):
-        self.screen = pygame.display.set_mode((800, 600))
+        self.screen = pygame.display.set_mode((800, 800))
         self.green = pygame.image.load("assets/green.png").convert_alpha()
         pygame.font.init()
         self.score = 0
@@ -96,7 +96,7 @@ class DoodleJump:
             if p[2] == 1:
                 if p[-1] == 1:
                     p[0] += 5
-                    if p[0] > 550:
+                    if p[0] > 750:
                         p[-1] = 0
                 else:
                     p[0] -= 5
@@ -107,7 +107,7 @@ class DoodleJump:
         for p in self.platforms:
             #print((self.platforms))
             check = self.platforms[1][1] - self.cameray
-            if check > 600:
+            if check > 800:
                 platform = random.randint(0, 1000)
                 if platform < 800:
                     platform = 0
@@ -125,7 +125,7 @@ class DoodleJump:
                 elif check>860 and platform == 0:
                     self.monsters.append([coords[0], coords[1]- 50, 0])
                 
-                self.platforms.pop(0)
+                print(self.platforms.pop(0))
                 self.score += 100
             
             if p[2] == 0:
@@ -152,7 +152,7 @@ class DoodleJump:
                 self.die=1
     
     def generatePlatforms(self):
-        on = 600
+        on = 800
         while on > -100:
             x = random.randint(0,700)
             platform = random.randint(0, 1000)
@@ -167,7 +167,7 @@ class DoodleJump:
 
     def drawGrid(self):
         for x in range(80):
-            pygame.draw.line(self.screen, (222,222,222), (x * 12, 0), (x * 12, 600))
+            pygame.draw.line(self.screen, (222,222,222), (x * 12, 0), (x * 12, 800))
             pygame.draw.line(self.screen, (222,222,222), (0, x * 12), (800, x * 12))
     
     def run(self):
@@ -179,7 +179,7 @@ class DoodleJump:
             for event in pygame.event.get():
                 if event.type == QUIT:
                     sys.exit()
-            if self.die==1 or (self.playery - self.cameray > 700):
+            if self.die==1 or (self.playery - self.cameray > 900):
                 self.cameray = 0
                 self.score = 0
                 self.die = 0
