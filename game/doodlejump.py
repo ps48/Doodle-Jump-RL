@@ -248,7 +248,6 @@ class DoodleJump:
                 self.screen.blit(self.playerLeft, (self.playerx, self.playery - self.cameray))
 
     def playStep(self, actions):
-        # print("playstep")
         """
             - actions = ['ACTION_LEFT', 'NO_ACTION', 'ACTION_RIGHT']
             - Param:
@@ -264,7 +263,6 @@ class DoodleJump:
                 - score:
                     - returns the current score of doodler in the game
         """
-        # self.generatePlatforms()
         last_cameray = self.cameray
         terminal = False
         reward = 0
@@ -279,7 +277,7 @@ class DoodleJump:
             terminal = True
             reward = -1
             print("terminated")
-        
+
         # if self.playery - self.cameray > 700:
         #         self.gameReboot()
                 # terminal = True
@@ -291,6 +289,8 @@ class DoodleJump:
         if_score_add = self.drawPlatforms()
         self.updatePlayerByAction(actions)
         self.updatePlatforms()
+        self.screen.blit(self.font.render(str(self.score), -1, (0, 0, 0)), (25, 25))
+        pygame.display.flip()
 
         if if_score_add:
             reward = 2

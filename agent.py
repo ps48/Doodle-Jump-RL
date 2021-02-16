@@ -7,7 +7,7 @@ from game.doodlejump import DoodleJump
 from model import Deep_QNet, QTrainer
 from helper import plot
 
-MAX_MEMORY = 100_000
+MAX_MEMORY = 100
 IMAGE_H = 80
 IMAGE_W = 80
 BATCH_SIZE = 1000
@@ -22,15 +22,15 @@ class Agent:
         self.model = Deep_QNet() #input_size = [1,4,80,80], output_size = 80)
         self.lr = LR
         self.trainer = QTrainer(model = self.model, lr=self.lr, gamma=self.gamma)
+        self.ctr = 1
 
-    def get_state(self, game): #DoodleJump()
+    def get_state(self, game):
         state = DoodleJump.getCurrentFrame(self)
-        # print(state.shape, "before")
-        x_t = cv2.cvtColor(cv2.resize(state, (IMAGE_W, IMAGE_H)), cv2.COLOR_BGR2GRAY)
-        state = np.stack((x_t, x_t, x_t, x_t), axis=2)
-        state = np.expand_dims(state, axis=0)
-        # print(state.shape, "shape")
-        # state = cv2.resize(state, (IMAGE_W, IMAGE_H))
+        img = cv2.cvtColor(cv2.resize(state, (IMAGE_W, IMAGE_H)), cv2.COLOR_BGR2GRAY)
+        # NOTE: Uncomment to store images
+        # cv2.imwrite("image_dump/"+str(self.ctr)+".jpg", img)
+        # self.ctr+=1
+        state = np.expand_dims(img, axis=0)
         return state
 
     def remember(self, state, action, reward, next_state, done):
@@ -76,7 +76,7 @@ def train():
     print("Now playing")
     while True:
         # get old state
-        
+
         state_old = agent.get_state(game)
 
         # get move
