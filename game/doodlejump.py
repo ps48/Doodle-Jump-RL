@@ -6,7 +6,7 @@ import time
 
 path = './game/'
 class DoodleJump:
-    def __init__(self, FPS=30000):
+    def __init__(self):
         self.screen = pygame.display.set_mode((800, 800))
         self.green = pygame.image.load(path+"assets/green.png").convert_alpha()
         pygame.font.init()
@@ -34,8 +34,6 @@ class DoodleJump:
         self.xmovement = 0
         self.die= 0
         self.inter_platform_distance = 65
-        self.FPSCLOCK = clock = pygame.time.Clock()
-        self.FPS = FPS
         self.timer = None
         self.clock = pygame.time.Clock()
         self.generatePlatforms()
@@ -266,55 +264,45 @@ class DoodleJump:
         last_cameray = self.cameray
         terminal = False
         reward = 0
+        return_score = self.score
 
+        pygame.display.flip()
         self.screen.fill((255,255,255))
         self.clock.tick(60)
         for event in pygame.event.get():
             if event.type == QUIT:
                 sys.exit()
         if self.die==1 or (self.playery - self.cameray > 900):
-            self.gameReboot()
+            return_score = self.gameReboot()
             terminal = True
             reward = -1
-            print("terminated")
+            print("terminated: Agent Died")
 
-        # if self.playery - self.cameray > 700:
-        #         self.gameReboot()
-                # terminal = True
-                # reward = -1
-                # print("terminated")
-
-        self.screen.fill((255,255,255))
         self.drawGrid()
         if_score_add = self.drawPlatforms()
-        self.updatePlayerByAction(actions)
-        self.updatePlatforms()
-        self.screen.blit(self.font.render(str(self.score), -1, (0, 0, 0)), (25, 25))
-        pygame.display.flip()
 
         if if_score_add:
             reward = 2
             self.timer = time.time()
-        else:
+        elif last_cameray == self.cameray:
             # check if doodler is on the same place for past 10 sec
             # if so reboot()
-            if last_cameray == self.cameray:
-                if self.timer == None:
+            if self.timer == None:
+                self.timer = time.time()
+            elif self.timer != None:
+                now_time = time.time()
+                if (now_time - self.timer) > 100:
+                    return_score = self.gameReboot()
+                    terminal = True
+                    reward = -1
+                    print("terminated: Agent stuck")
                     self.timer = time.time()
 
-                elif self.timer != None:
-                    now_time = time.time()
-                    if (now_time - self.timer) > 10:
-                        self.gameReboot()
-
-                        terminal = True
-                        reward = -1
-                        print("terminated")
-                        self.timer = time.time()
-
-        pygame.display.update()
-        self.FPSCLOCK.tick(self.FPS)
-        return reward, terminal, self.score
+        self.updatePlayerByAction(actions)
+        self.updatePlatforms()
+        self.screen.blit(self.font.render(str(self.score), -1, (0, 0, 0)), (25, 25))
+        pygame.display.flip()
+        return reward, terminal, return_score
 
     def gameReboot(self):
         """
@@ -322,6 +310,7 @@ class DoodleJump:
             - resets all elements of the game
             - to be called when agent dies
         """
+        old_score = self.score
         self.cameray = 0
         self.score = 0
         self.die = 0
@@ -331,6 +320,7 @@ class DoodleJump:
         self.generatePlatforms()
         self.playerx = 400
         self.playery = 400
+        return old_score
 
     def run(self):
         clock = pygame.time.Clock()
@@ -342,7 +332,7 @@ class DoodleJump:
                 if event.type == QUIT:
                     sys.exit()
             if self.die==1 or (self.playery - self.cameray > 900):
-                self.gameReboot()
+                old_score = self.gameReboot()
 
             self.drawGrid()
             self.drawPlatforms()

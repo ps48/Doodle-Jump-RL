@@ -17,8 +17,7 @@ class Deep_QNet(nn.Module):
 
     def forward(self, x):
         x = x.view(-1,1,80,80)
-        x_torch = torch.Tensor(x)
-        conv1_res = F.relu(self.conv1(x_torch))
+        conv1_res = F.relu(self.conv1(x))
         maxpool1_res = self.maxpool1(conv1_res)
         conv2_res = F.relu(self.conv2(maxpool1_res))
         maxpool2_res = self.maxpool2(conv2_res)
@@ -37,21 +36,22 @@ class Deep_QNet(nn.Module):
         torch.save(self.state_dict(), file_name)
 
 class QTrainer:
-    def __init__(self, model, lr, gamma):
+    def __init__(self, model, lr, gamma, device):
         super(QTrainer, self). __init__()
         self.lr = lr
         self.gamma = gamma
         self.model = model
         self.optimizer = optim.Adam(model.parameters(), lr=self.lr)
         self.criterion = nn.MSELoss()
+        self.device = device
+        self.model.to(self.device)
 
     def train_step(self, state, action, reward, next_state, done):
-        state = torch.tensor(state, dtype=torch.float)
-        next_state = torch.tensor(next_state, dtype=torch.float)
-        action = torch.tensor(action, dtype=torch.float)
-        reward = torch.tensor(reward, dtype=torch.float)
+        state = torch.tensor(state, dtype=torch.float).to(self.device)
+        next_state = torch.tensor(next_state, dtype=torch.float).to(self.device)
+        action = torch.tensor(action, dtype=torch.float).to(self.device)
+        reward = torch.tensor(reward, dtype=torch.float).to(self.device)
         # (n, x)
-        # print("state shape", state.shape)
         if state.shape[0] == 1:
             # (1, x)
             state = torch.unsqueeze(state, 0)

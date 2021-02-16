@@ -3,11 +3,12 @@ import random
 import numpy as np
 import cv2
 from collections import deque
+import torch
 from game.doodlejump import DoodleJump
 from model import Deep_QNet, QTrainer
 from helper import plot
 
-MAX_MEMORY = 100
+MAX_MEMORY = 10000
 IMAGE_H = 80
 IMAGE_W = 80
 BATCH_SIZE = 1000
@@ -19,10 +20,12 @@ class Agent:
         self.epsilon = 0
         self.gamma = 0.9
         self.memory = deque(maxlen = MAX_MEMORY)
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.model = Deep_QNet() #input_size = [1,4,80,80], output_size = 80)
         self.lr = LR
-        self.trainer = QTrainer(model = self.model, lr=self.lr, gamma=self.gamma)
+        self.trainer = QTrainer(model = self.model, lr=self.lr, gamma=self.gamma, device=self.device)
         self.ctr = 1
+
 
     def get_state(self, game):
         state = DoodleJump.getCurrentFrame(self)
@@ -58,7 +61,7 @@ class Agent:
             move = random.randint(0, 2)
             final_move[move] = 1
         else:
-            state0 = torch.tensor(state, dtype=torch.float)
+            state0 = torch.tensor(state, dtype=torch.float).to(self.device)
             prediction = self.model(state0)
             move = torch.argmax(prediction).item()
             final_move[move] = 1
@@ -76,7 +79,6 @@ def train():
     print("Now playing")
     while True:
         # get old state
-
         state_old = agent.get_state(game)
 
         # get move
