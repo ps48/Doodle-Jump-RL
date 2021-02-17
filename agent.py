@@ -28,8 +28,10 @@ class Agent:
 
 
     def get_state(self, game):
-        state = DoodleJump.getCurrentFrame(self)
+        state = game.getCurrentFrame()
         img = cv2.cvtColor(cv2.resize(state, (IMAGE_W, IMAGE_H)), cv2.COLOR_BGR2GRAY)
+        M = cv2.getRotationMatrix2D((IMAGE_W / 2, IMAGE_H / 2), 270, 1.0)
+        img = cv2.warpAffine(img, M, (IMAGE_H, IMAGE_W))
         # NOTE: Uncomment to store images
         # cv2.imwrite("image_dump/"+str(self.ctr)+".jpg", img)
         # self.ctr+=1

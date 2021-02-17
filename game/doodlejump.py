@@ -306,7 +306,9 @@ class DoodleJump:
 
     def gameReboot(self):
         """
-            - No Params & No Returns
+            - No Params
+            - Returns:
+                - old score before the reboot functions is called
             - resets all elements of the game
             - to be called when agent dies
         """
