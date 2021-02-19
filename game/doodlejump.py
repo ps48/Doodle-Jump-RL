@@ -36,7 +36,7 @@ class DoodleJump:
         self.inter_platform_distance = 80
         self.timer = None
         self.clock = pygame.time.Clock()
-        #self.generatePlatforms()
+        self.generatePlatforms()
 
     def updatePlayer(self):
         if self.die==1:
@@ -114,28 +114,35 @@ class DoodleJump:
             # print("platform, ",(self.platforms))
             check = self.platforms[0][1] - self.cameray
             if check > 800:
-                platform = random.randint(0, 1000)
-                if platform < 800:
-                    platform = 0
-                elif platform < 900:
-                    platform = 1
+                platform1 = random.randint(0, 1000)
+                if platform1 < 800:
+                    platform1 = 0
+                elif platform1 < 900:
+                    platform1 = 1
                 else:
-                    platform = 2
+                    platform1 = 2
 
                 x1 = random.randint(0, 700)
-                self.platforms.append([x1, self.platforms[-1][1] - self.inter_platform_distance, platform, 0])
+                self.platforms.append([x1, self.platforms[-1][1] - self.inter_platform_distance, platform1, 0])
                 
+                platform2 = random.randint(0, 1000)
+                if platform2 < 800:
+                    platform2 = 0
+                elif platform2 < 900:
+                    platform2 = 1
+                else:
+                    platform2 = 2
                 x2 = x1
                 while abs(x1 - x2) < 200:
                     x2 = random.randint(0, 700)
-                self.platforms.append([x2, self.platforms[-2][1] - self.inter_platform_distance, platform, 0])
+                self.platforms.append([x2, self.platforms[-2][1] - self.inter_platform_distance, platform2, 0])
                 
                 coords = self.platforms[-1]
                 check = random.randint(0, 1000)
-                if check > 900 and platform == 0:
+                if check > 900 and platform2 == 0:
                     self.springs.append([coords[0], coords[1] - 25, 0])
 
-                elif check>860 and platform == 0:
+                elif check>860 and platform2 == 0:
                     self.monsters.append([coords[0], coords[1]- 50, 0])
 
                 print("popping 1st platform ",self.platforms.pop(0))
@@ -347,7 +354,7 @@ class DoodleJump:
 
     def run(self):
         clock = pygame.time.Clock()
-        self.generatePlatforms()
+        #self.generatePlatforms()
         while True:
             self.screen.fill((255,255,255))
             clock.tick(60)
