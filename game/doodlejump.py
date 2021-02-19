@@ -33,16 +33,11 @@ class DoodleJump:
         self.gravity = 0
         self.xmovement = 0
         self.die= 0
-<<<<<<< HEAD:pygame/doodlejump.py
-        self.inter_platform_distance = 40
-    
-=======
-        self.inter_platform_distance = 65
+        self.inter_platform_distance = 80
         self.timer = None
         self.clock = pygame.time.Clock()
-        self.generatePlatforms()
+        #self.generatePlatforms()
 
->>>>>>> 4ba1cf7fd5a79f570994fdcb9ed101cd223e8d21:game/doodlejump.py
     def updatePlayer(self):
         if self.die==1:
             return
@@ -127,7 +122,14 @@ class DoodleJump:
                 else:
                     platform = 2
 
-                self.platforms.append([random.randint(0, 700), self.platforms[-1][1] - self.inter_platform_distance, platform, 0])
+                x1 = random.randint(0, 700)
+                self.platforms.append([x1, self.platforms[-1][1] - self.inter_platform_distance, platform, 0])
+                
+                x2 = x1
+                while abs(x1 - x2) < 200:
+                    x2 = random.randint(0, 700)
+                self.platforms.append([x2, self.platforms[-2][1] - self.inter_platform_distance, platform, 0])
+                
                 coords = self.platforms[-1]
                 check = random.randint(0, 1000)
                 if check > 900 and platform == 0:
@@ -136,7 +138,8 @@ class DoodleJump:
                 elif check>860 and platform == 0:
                     self.monsters.append([coords[0], coords[1]- 50, 0])
 
-                print("popping ",self.platforms.pop(0))
+                print("popping 1st platform ",self.platforms.pop(0))
+                print("popping 2nd platform ", self.platforms.pop(0))
                 self.score += 100
                 score_increment = True
 
@@ -168,15 +171,28 @@ class DoodleJump:
     def generatePlatforms(self):
         on = 800
         while on > -100:
-            x = random.randint(0,700)
-            platform = random.randint(0, 1000)
-            if platform < 800:
-                platform = 0
-            elif platform < 900:
-                platform = 1
+            x1 = random.randint(0,700)
+            platform1 = random.randint(0, 1000)
+            if platform1 < 800:
+                platform1 = 0
+            elif platform1 < 900:
+                platform1 = 1
             else:
-                platform = 2
-            self.platforms.append([x, on, platform, 0])
+                platform1 = 2
+            self.platforms.append([x1, on, platform1, 0])
+
+            x2 = x1
+            while abs(x1 - x2) < 200:
+                x2 = random.randint(0, 700)
+            platform2 = random.randint(0, 1000)
+            if platform2 < 800:
+                platform2 = 0
+            elif platform2 < 900:
+                platform2 = 1
+            else:
+                platform2 = 2
+            self.platforms.append([x2, on, platform2, 0])
+
             on -= self.inter_platform_distance
 
     def drawGrid(self):
@@ -349,4 +365,4 @@ class DoodleJump:
             pygame.display.flip()
 
 
-# DoodleJump().run()
+DoodleJump().run()
