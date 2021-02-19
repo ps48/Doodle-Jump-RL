@@ -31,7 +31,7 @@ class DoodleJump:
         self.gravity = 0
         self.xmovement = 0
         self.die= 0
-        self.inter_platform_distance = 65
+        self.inter_platform_distance = 40
     
     def updatePlayer(self):
         if self.die==1:
