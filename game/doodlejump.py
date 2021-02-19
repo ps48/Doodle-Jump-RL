@@ -36,7 +36,7 @@ class DoodleJump:
         self.inter_platform_distance = 80
         self.timer = None
         self.clock = pygame.time.Clock()
-        #self.generatePlatforms()
+        self.generatePlatforms()
 
     def updatePlayer(self):
         if self.die==1:
@@ -124,12 +124,12 @@ class DoodleJump:
 
                 x1 = random.randint(0, 700)
                 self.platforms.append([x1, self.platforms[-1][1] - self.inter_platform_distance, platform, 0])
-                
+
                 x2 = x1
                 while abs(x1 - x2) < 200:
                     x2 = random.randint(0, 700)
                 self.platforms.append([x2, self.platforms[-2][1] - self.inter_platform_distance, platform, 0])
-                
+
                 coords = self.platforms[-1]
                 check = random.randint(0, 1000)
                 if check > 900 and platform == 0:
@@ -347,7 +347,6 @@ class DoodleJump:
 
     def run(self):
         clock = pygame.time.Clock()
-        self.generatePlatforms()
         while True:
             self.screen.fill((255,255,255))
             clock.tick(60)
@@ -364,5 +363,6 @@ class DoodleJump:
             self.screen.blit(self.font.render(str(self.score), -1, (0, 0, 0)), (25, 25))
             pygame.display.flip()
 
-
-DoodleJump().run()
+if __name__ == "__main__":
+    game = DoodleJump()
+    game.run()
