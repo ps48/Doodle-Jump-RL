@@ -354,7 +354,6 @@ class DoodleJump:
 
     def run(self):
         clock = pygame.time.Clock()
-        #self.generatePlatforms()
         while True:
             self.screen.fill((255,255,255))
             clock.tick(60)
@@ -371,5 +370,6 @@ class DoodleJump:
             self.screen.blit(self.font.render(str(self.score), -1, (0, 0, 0)), (25, 25))
             pygame.display.flip()
 
-
-DoodleJump().run()
+if __name__ == "__main__":
+    game = DoodleJump()
+    game.run()
