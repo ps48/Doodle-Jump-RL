@@ -6,7 +6,22 @@ import time
 
 path = './game/'
 class DoodleJump:
-    def __init__(self):
+    def __init__(self, difficulty='EASY'):
+
+        # To change the difficulty of the game, only tune these two parameters:
+        # inter_platform_distance - distance between two platforms at two consecutive levels.
+        # second_platform_prob - the probability with which you need two platforms at the same level.
+        if difficulty == "HARD":
+            self.inter_platform_distance = 100
+            self.second_platform_prob = 700
+        elif difficulty == "MEDIUM":
+            self.inter_platform_distance = 90
+            self.second_platform_prob = 750
+        else: # EASY
+            self.inter_platform_distance = 80
+            self.second_platform_prob = 850
+
+
         self.screen = pygame.display.set_mode((800, 800))
         self.green = pygame.image.load(path+"assets/green.png").convert_alpha()
         pygame.font.init()
@@ -33,7 +48,6 @@ class DoodleJump:
         self.gravity = 0
         self.xmovement = 0
         self.die= 0
-        self.inter_platform_distance = 80
         self.timer = None
         self.clock = pygame.time.Clock()
         self.generatePlatforms()
@@ -125,28 +139,34 @@ class DoodleJump:
                 x1 = random.randint(0, 700)
                 self.platforms.append([x1, self.platforms[-1][1] - self.inter_platform_distance, platform1, 0])
                 
-                platform2 = random.randint(0, 1000)
-                if platform2 < 800:
-                    platform2 = 0
-                elif platform2 < 900:
-                    platform2 = 1
-                else:
-                    platform2 = 2
-                x2 = x1
-                while abs(x1 - x2) < 200:
-                    x2 = random.randint(0, 700)
-                self.platforms.append([x2, self.platforms[-2][1] - self.inter_platform_distance, platform2, 0])
                 
+                second_platform_prob = random.randint(0, 1000)
+                if second_platform_prob <= self.second_platform_prob:
+                    platform2 = random.randint(0, 1000)
+                    if platform2 < 800:
+                        platform2 = 0
+                    elif platform2 < 900:
+                        platform2 = 1
+                    else:
+                        platform2 = 2
+                    x2 = x1
+                    while abs(x1 - x2) < 200:
+                        x2 = random.randint(0, 700)
+                    self.platforms.append([x2, self.platforms[-2][1] - self.inter_platform_distance, platform2, 0])
+                    
                 coords = self.platforms[-1]
                 check = random.randint(0, 1000)
-                if check > 900 and platform2 == 0:
+                if check > 900 and coords[2] == 0:
                     self.springs.append([coords[0], coords[1] - 25, 0])
 
-                elif check>860 and platform2 == 0:
+                elif check>860 and coords[2] == 0:
                     self.monsters.append([coords[0], coords[1]- 50, 0])
 
-                print("popping 1st platform ",self.platforms.pop(0))
-                print("popping 2nd platform ", self.platforms.pop(0))
+                first_platform_popped = self.platforms.pop(0)
+                print("popping 1st platform ", first_platform_popped)
+                if self.platforms[0][1] == first_platform_popped[1]:
+                    print("popping 2nd platform ", self.platforms.pop(0))
+                
                 self.score += 100
                 score_increment = True
 
@@ -188,17 +208,19 @@ class DoodleJump:
                 platform1 = 2
             self.platforms.append([x1, on, platform1, 0])
 
-            x2 = x1
-            while abs(x1 - x2) < 200:
-                x2 = random.randint(0, 700)
-            platform2 = random.randint(0, 1000)
-            if platform2 < 800:
-                platform2 = 0
-            elif platform2 < 900:
-                platform2 = 1
-            else:
-                platform2 = 2
-            self.platforms.append([x2, on, platform2, 0])
+            second_platform_prob = random.randint(0, 1000)
+            if second_platform_prob <= self.second_platform_prob:    
+                x2 = x1
+                while abs(x1 - x2) < 200:
+                    x2 = random.randint(0, 700)
+                platform2 = random.randint(0, 1000)
+                if platform2 < 800:
+                    platform2 = 0
+                elif platform2 < 900:
+                    platform2 = 1
+                else:
+                    platform2 = 2
+                self.platforms.append([x2, on, platform2, 0])
 
             on -= self.inter_platform_distance
 
