@@ -19,10 +19,7 @@ class DoodleJump:
         self.playerRight_1 = pygame.image.load(path+"assets/right_1.png").convert_alpha()
         self.playerLeft = pygame.image.load(path+"assets/left.png").convert_alpha()
         self.playerLeft_1 = pygame.image.load(path+"assets/left_1.png").convert_alpha()
-        self.playerRightDead = pygame.image.load(path+"assets/right_dead.png").convert_alpha()
-        self.playerRight_1Dead = pygame.image.load(path+"assets/right1_dead.png").convert_alpha()
-        self.playerLeftDead = pygame.image.load(path+"assets/left_dead.png").convert_alpha()
-        self.playerLeft_1Dead = pygame.image.load(path+"assets/left1_dead.png").convert_alpha()
+        self.playerdead = pygame.image.load(path+"assets/playerdead.png").convert_alpha()
         self.spring = pygame.image.load(path+"assets/spring.png").convert_alpha()
         self.spring_1 = pygame.image.load(path+"assets/spring_1.png").convert_alpha()
         self.monster =pygame.image.load(path+"assets/monster1.png").convert_alpha()
@@ -45,6 +42,7 @@ class DoodleJump:
 
     def updatePlayer(self):
         if self.die==1:
+            self.screen.blit(self.playerdead, (self.playerx, self.playery - self.cameray))
             return
         if not self.jump:
             self.playery += self.gravity
@@ -76,26 +74,14 @@ class DoodleJump:
             self.cameray -= 10
         if not self.direction:
             if self.jump:
-                if self.die==1:
-                    self.screen.blit(self.playerRight_1Dead, (self.playerx, self.playery - self.cameray))
-                else:
-                    self.screen.blit(self.playerRight_1, (self.playerx, self.playery - self.cameray))
+                self.screen.blit(self.playerRight_1, (self.playerx, self.playery - self.cameray))
             else:
-                if self.die==1:    
-                    self.screen.blit(self.playerRightDead, (self.playerx, self.playery - self.cameray))
-                else:
-                    self.screen.blit(self.playerRight, (self.playerx, self.playery - self.cameray))
+                self.screen.blit(self.playerRight, (self.playerx, self.playery - self.cameray))
         else:
             if self.jump:
-                if self.die==1:
-                     self.screen.blit(self.playerLeft_1Dead, (self.playerx, self.playery - self.cameray))
-                else:
-                    self.screen.blit(self.playerLeft_1, (self.playerx, self.playery - self.cameray))
+                self.screen.blit(self.playerLeft_1, (self.playerx, self.playery - self.cameray))
             else:
-                if self.die==1:
-                    self.screen.blit(self.playerLeftDead, (self.playerx, self.playery - self.cameray))
-                else:
-                    self.screen.blit(self.playerLeft, (self.playerx, self.playery - self.cameray))
+                self.screen.blit(self.playerLeft, (self.playerx, self.playery - self.cameray))
                 
 
     def updatePlatforms(self):
@@ -160,7 +146,7 @@ class DoodleJump:
                 if check > 900 and platform2 == 0:
                     self.springs.append([coords[0]+25, coords[1] - 25, 0])
 
-                elif check>860 and platform2 == 0:
+                elif check> 860 and platform2 == 0:
                     self.monsters.append([coords[0]+18, coords[1]- 50, 0])
 
                 print("popping 1st platform ",self.platforms.pop(0))
@@ -359,6 +345,9 @@ class DoodleJump:
             - resets all elements of the game
             - to be called when agent dies
         """
+        #If game freezes comment the for loop below
+        for i in range(50000000):
+            halt=1
         old_score = self.score
         self.cameray = 0
         self.score = 0
