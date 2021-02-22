@@ -34,9 +34,11 @@ class DoodleJump:
         self.playerRight_1 = pygame.image.load(path+"assets/right_1.png").convert_alpha()
         self.playerLeft = pygame.image.load(path+"assets/left.png").convert_alpha()
         self.playerLeft_1 = pygame.image.load(path+"assets/left_1.png").convert_alpha()
+        self.playerdead = pygame.image.load(path+"assets/playerdead.png").convert_alpha()
         self.spring = pygame.image.load(path+"assets/spring.png").convert_alpha()
         self.spring_1 = pygame.image.load(path+"assets/spring_1.png").convert_alpha()
         self.monster =pygame.image.load(path+"assets/monster1.png").convert_alpha()
+        self.monsterdead =pygame.image.load(path+"assets/monsterdead.png").convert_alpha()
         self.direction = 0
         self.playerx = 400
         self.playery = 400
@@ -54,6 +56,7 @@ class DoodleJump:
 
     def updatePlayer(self):
         if self.die==1:
+            self.screen.blit(self.playerdead, (self.playerx, self.playery - self.cameray))
             return
         if not self.jump:
             self.playery += self.gravity
@@ -93,6 +96,7 @@ class DoodleJump:
                 self.screen.blit(self.playerLeft_1, (self.playerx, self.playery - self.cameray))
             else:
                 self.screen.blit(self.playerLeft, (self.playerx, self.playery - self.cameray))
+                
 
     def updatePlatforms(self):
         for p in self.platforms:
@@ -156,6 +160,7 @@ class DoodleJump:
                     
                 coords = self.platforms[-1]
                 check = random.randint(0, 1000)
+
                 if check > 900 and coords[2] == 0:
                     self.springs.append([coords[0], coords[1] - 25, 0])
 
@@ -191,6 +196,7 @@ class DoodleJump:
         for monster in self.monsters:
             self.screen.blit(self.monster, (monster[0], monster[1] -self.cameray))
             if pygame.Rect(monster[0], monster[1], self.monster.get_width(), self.monster.get_height()).colliderect(pygame.Rect(self.playerx, self.playery, self.playerRight.get_width(), self.playerRight.get_height())):
+                self.screen.blit(self.monsterdead, (monster[0], monster[1] -self.cameray))
                 self.die=1
 
         return score_increment
@@ -362,6 +368,9 @@ class DoodleJump:
             - resets all elements of the game
             - to be called when agent dies
         """
+        #If game freezes comment the for loop below
+        for i in range(50000000):
+            halt=1
         old_score = self.score
         self.cameray = 0
         self.score = 0
