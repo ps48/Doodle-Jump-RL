@@ -5,7 +5,7 @@ import cv2
 from collections import deque
 import torch
 from game.doodlejump import DoodleJump
-from model import Deep_QNet, Deep_Recurrent_QNet, QTrainer
+from model import Deep_QNet, Deep_RQNet, QTrainer
 from helper import plot
 
 # These 2 lines of code are for the code to run on mac. Facing some issues due to duplicate openMP libraries. Ignore these.
@@ -28,12 +28,12 @@ class Agent:
         self.gamma = 0.9
         self.memory = deque(maxlen = MAX_MEMORY)
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        # For DRQN self.model = Deep_Recurrent_QNet()
+        # For DRQN self.model = Deep_RQNet()
         # For DQN self.model = Deep_QNet()
-        
+
         # self.model = Deep_QNet() #input_size = [1,4,80,80], output_size = 80)
-        self.model = Deep_Recurrent_QNet()
-        
+        self.model = Deep_RQNet()
+
         self.lr = LR
         self.trainer = QTrainer(model = self.model, lr=self.lr, gamma=self.gamma, device=self.device)
         self.ctr = 1
@@ -58,11 +58,8 @@ class Agent:
             mini_sample = random.sample(self.memory, BATCH_SIZE) # list of tuples
         else:
             mini_sample = self.memory
-
         states, actions, rewards, next_states, dones = zip(*mini_sample)
         self.trainer.train_step(states, actions, rewards, next_states, dones)
-        #for state, action, reward, nexrt_state, done in mini_sample:
-        #    self.trainer.train_step(state, action, reward, next_state, done)
 
     def train_short_memory(self, state, action, reward, next_state, done):
         self.trainer.train_step(state, action, reward, next_state, done)

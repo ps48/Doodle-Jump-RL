@@ -21,11 +21,9 @@ class DoodleJump:
             self.inter_platform_distance = 80
             self.second_platform_prob = 850
 
-
+        pygame.font.init()
         self.screen = pygame.display.set_mode((800, 800))
         self.green = pygame.image.load(path+"assets/green.png").convert_alpha()
-        pygame.font.init()
-        self.score = 0
         self.font = pygame.font.SysFont("Arial", 25)
         self.blue = pygame.image.load(path+"assets/blue.png").convert_alpha()
         self.red = pygame.image.load(path+"assets/red.png").convert_alpha()
@@ -39,6 +37,7 @@ class DoodleJump:
         self.spring_1 = pygame.image.load(path+"assets/spring_1.png").convert_alpha()
         self.monster =pygame.image.load(path+"assets/monster1.png").convert_alpha()
         self.monsterdead =pygame.image.load(path+"assets/monsterdead.png").convert_alpha()
+        self.score = 0
         self.direction = 0
         self.playerx = 400
         self.playery = 400
@@ -97,7 +96,6 @@ class DoodleJump:
             else:
                 self.screen.blit(self.playerLeft, (self.playerx, self.playery - self.cameray))
 
-
     def updatePlatforms(self):
         for p in self.platforms:
             rect = pygame.Rect(p[0], p[1], self.green.get_width() - 10, self.green.get_height())
@@ -113,7 +111,6 @@ class DoodleJump:
                         p[-1] = 1
                     else:
                         self.jump = 0
-
 
             # moving blue platform left and right
             if p[2] == 1:
@@ -291,13 +288,6 @@ class DoodleJump:
         elif self.playerx < -50:
             self.playerx = 850
 
-        # if self.playerx > 750:
-        #     #self.playerx = -50
-        #     self.playerx = 750
-        # elif self.playerx < 0:
-        #     #self.playerx = 850
-        #     self.playerx = 0
-
         self.playerx += self.xmovement
         if self.playery - self.cameray <= 200:
             self.cameray -= 10
@@ -408,6 +398,7 @@ class DoodleJump:
             self.updatePlatforms()
             self.screen.blit(self.font.render(str(self.score), -1, (0, 0, 0)), (25, 25))
             pygame.display.flip()
+
 
 if __name__ == "__main__":
     game = DoodleJump()
