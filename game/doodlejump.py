@@ -143,6 +143,17 @@ class DoodleJump:
                 x1 = random.randint(0, 700)
                 self.platforms.append([x1, self.platforms[-1][1] - self.inter_platform_distance, platform1, 0])
                 
+                platform2 = random.randint(0, 1000)
+                if platform2 < 800:
+                    platform2 = 0
+                elif platform2 < 900:
+                    platform2 = 1
+                else:
+                    platform2 = 2
+                x2 = x1
+                while abs(x1 - x2) < 200:
+                    x2 = random.randint(0, 700)
+                self.platforms.append([x2, self.platforms[-2][1] - self.inter_platform_distance, platform2, 0])
                 
                 second_platform_prob = random.randint(0, 1000)
                 if second_platform_prob <= self.second_platform_prob:

@@ -5,8 +5,15 @@ import cv2
 from collections import deque
 import torch
 from game.doodlejump import DoodleJump
-from model import Deep_QNet, QTrainer
+from model import Deep_QNet, Deep_Recurrent_QNet, QTrainer
 from helper import plot
+
+# These 2 lines of code are for the code to run on mac. Facing some issues due to duplicate openMP libraries. Ignore these.
+'''
+import os
+
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
+'''
 
 MAX_MEMORY = 10000
 IMAGE_H = 80
@@ -21,7 +28,12 @@ class Agent:
         self.gamma = 0.9
         self.memory = deque(maxlen = MAX_MEMORY)
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self.model = Deep_QNet() #input_size = [1,4,80,80], output_size = 80)
+        # For DRQN self.model = Deep_Recurrent_QNet()
+        # For DQN self.model = Deep_QNet()
+        
+        # self.model = Deep_QNet() #input_size = [1,4,80,80], output_size = 80)
+        self.model = Deep_Recurrent_QNet()
+        
         self.lr = LR
         self.trainer = QTrainer(model = self.model, lr=self.lr, gamma=self.gamma, device=self.device)
         self.ctr = 1
