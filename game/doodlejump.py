@@ -96,7 +96,7 @@ class DoodleJump:
                 self.screen.blit(self.playerLeft_1, (self.playerx, self.playery - self.cameray))
             else:
                 self.screen.blit(self.playerLeft, (self.playerx, self.playery - self.cameray))
-                
+
 
     def updatePlatforms(self):
         for p in self.platforms:
@@ -142,7 +142,7 @@ class DoodleJump:
 
                 x1 = random.randint(0, 700)
                 self.platforms.append([x1, self.platforms[-1][1] - self.inter_platform_distance, platform1, 0])
-                
+
                 platform2 = random.randint(0, 1000)
                 if platform2 < 800:
                     platform2 = 0
@@ -154,7 +154,7 @@ class DoodleJump:
                 while abs(x1 - x2) < 200:
                     x2 = random.randint(0, 700)
                 self.platforms.append([x2, self.platforms[-2][1] - self.inter_platform_distance, platform2, 0])
-                
+
                 second_platform_prob = random.randint(0, 1000)
                 if second_platform_prob <= self.second_platform_prob:
                     platform2 = random.randint(0, 1000)
@@ -168,7 +168,7 @@ class DoodleJump:
                     while abs(x1 - x2) < 200:
                         x2 = random.randint(0, 700)
                     self.platforms.append([x2, self.platforms[-2][1] - self.inter_platform_distance, platform2, 0])
-                    
+
                 coords = self.platforms[-1]
                 check = random.randint(0, 1000)
 
@@ -182,7 +182,7 @@ class DoodleJump:
                 print("popping 1st platform ", first_platform_popped)
                 if self.platforms[0][1] == first_platform_popped[1]:
                     print("popping 2nd platform ", self.platforms.pop(0))
-                
+
                 self.score += 100
                 score_increment = True
 
@@ -226,7 +226,7 @@ class DoodleJump:
             self.platforms.append([x1, on, platform1, 0])
 
             second_platform_prob = random.randint(0, 1000)
-            if second_platform_prob <= self.second_platform_prob:    
+            if second_platform_prob <= self.second_platform_prob:
                 x2 = x1
                 while abs(x1 - x2) < 200:
                     x2 = random.randint(0, 700)
@@ -379,9 +379,6 @@ class DoodleJump:
             - resets all elements of the game
             - to be called when agent dies
         """
-        #If game freezes comment the for loop below
-        for i in range(50000000):
-            halt=1
         old_score = self.score
         self.cameray = 0
         self.score = 0
