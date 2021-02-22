@@ -1,52 +1,44 @@
-import torch
+import os
+import argparse
 import random
 import numpy as np
 import cv2
-from collections import deque
 import torch
+from collections import deque
 from game.doodlejump import DoodleJump
 from model import Deep_QNet, Deep_RQNet, QTrainer
 from helper import plot
 
-# These 2 lines of code are for the code to run on mac. Facing some issues due to duplicate openMP libraries. Ignore these.
-'''
-import os
-
-os.environ['KMP_DUPLICATE_LIB_OK']='True'
-'''
-
-MAX_MEMORY = 10000
-IMAGE_H = 80
-IMAGE_W = 80
-BATCH_SIZE = 1000
-LR = 0.001
 
 class Agent:
-    def __init__(self):
+    def __init__(self, args):
         self.n_games = 0
         self.epsilon = 0
-        self.gamma = 0.9
-        self.memory = deque(maxlen = MAX_MEMORY)
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        # For DRQN self.model = Deep_RQNet()
-        # For DQN self.model = Deep_QNet()
-
-        # self.model = Deep_QNet() #input_size = [1,4,80,80], output_size = 80)
-        self.model = Deep_RQNet()
-
-        self.lr = LR
-        self.trainer = QTrainer(model = self.model, lr=self.lr, gamma=self.gamma, device=self.device)
         self.ctr = 1
-
+        self.store_frames = args.store_frames
+        self.image_h = args.height
+        self.image_w = args.width
+        self.memory = deque(maxlen=args.max_memory)
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.gamma = args.gamma
+        self.batch_size = args.batch_size
+        self.lr = args.learning_rate
+        if args.model=="dqn":
+            self.model = Deep_QNet()
+        elif args.model=="drqn":
+            self.model = Deep_RQNet()
+        self.trainer = QTrainer(model=self.model, lr=self.lr, gamma=self.gamma, device=self.device)
 
     def get_state(self, game):
         state = game.getCurrentFrame()
-        img = cv2.cvtColor(cv2.resize(state, (IMAGE_W, IMAGE_H)), cv2.COLOR_BGR2GRAY)
-        M = cv2.getRotationMatrix2D((IMAGE_W / 2, IMAGE_H / 2), 270, 1.0)
-        img = cv2.warpAffine(img, M, (IMAGE_H, IMAGE_W))
-        # NOTE: Uncomment to store images
-        # cv2.imwrite("image_dump/"+str(self.ctr)+".jpg", img)
-        # self.ctr+=1
+        img = cv2.cvtColor(cv2.resize(state, (self.image_w, self.image_h)), cv2.COLOR_BGR2GRAY)
+        M = cv2.getRotationMatrix2D((self.image_w / 2, self.image_h / 2), 270, 1.0)
+        img = cv2.warpAffine(img, M, (self.image_h, self.image_w))
+
+        if self.store_frames:
+            os.makedirs("./image_dump", exist_ok=True)
+            cv2.imwrite("./image_dump/"+str(self.ctr)+".jpg", img)
+            self.ctr+=1
         state = np.expand_dims(img, axis=0)
         return state
 
@@ -54,8 +46,8 @@ class Agent:
         self.memory.append((state, action, reward, next_state, done)) # popleft if MAX_MEMORY is reached
 
     def train_long_memory(self):
-        if len(self.memory) > BATCH_SIZE:
-            mini_sample = random.sample(self.memory, BATCH_SIZE) # list of tuples
+        if len(self.memory) > self.batch_size:
+            mini_sample = random.sample(self.memory, self.batch_size) # list of tuples
         else:
             mini_sample = self.memory
         states, actions, rewards, next_states, dones = zip(*mini_sample)
@@ -80,13 +72,15 @@ class Agent:
         return final_move
 
 
-def train():
+def train(game, args):
+    if args.macos:
+        os.environ['KMP_DUPLICATE_LIB_OK']='True'
+
     plot_scores = []
     plot_mean_scores = []
     total_score = 0
     record = 0
-    agent = Agent()
-    game = DoodleJump() # can pass in 'EASY', 'MEDIUM', 'DIFFICULT' in the constructor. default is EASY.
+    agent = Agent(args)
     print("Now playing")
     while True:
         # get old state
@@ -123,5 +117,26 @@ def train():
             plot_mean_scores.append(mean_score)
             plot(plot_scores, plot_mean_scores)
 
+
 if __name__ == "__main__":
-    train()
+    parser = argparse.ArgumentParser(description='RL Agent for Doodle Jump')
+    parser.add_argument("--macos", action="store_true", help="select model to train the agent")
+    parser.add_argument("--human", action="store_true", help="playing the game manually without agent")
+    parser.add_argument("-d", "--difficulty", type=str, default="EASY", choices=["EASY", "MEDIUM", "HARD"], help="select difficulty of the game")
+    parser.add_argument("-m", "--model", type=str, default="dqn", choices=["dqn", "drqn"], help="select model to train the agent")
+    parser.add_argument("-w", "--weights", type=str, help="path to weights of an earlier trained model")
+    parser.add_argument("-lr", "--learning_rate", type=float, default=0.001, help="set learning rate for training the model")
+    parser.add_argument("-g", "--gamma", type=float, default=0.9, help="set discount factor for q learning")
+    parser.add_argument("--max_memory", type=int, default=10000, help="Buffer memory size for long training")
+    parser.add_argument("--store_frames", action="store_true", help="store frames encountered during game play by agent")
+    parser.add_argument("--batch_size", type=int, default=1000, help="Batch size for long training")
+    parser.add_argument("--height", type=int, default=80, help="set the image height post resize")
+    parser.add_argument("--width", type=int, default=80, help="set the image width post resize")
+
+    args = parser.parse_args()
+    # can pass in 'EASY', 'MEDIUM', 'DIFFICULT' in the constructor. default is EASY.
+    game = DoodleJump(difficulty=args.difficulty)
+    if args.human:
+        game.run()
+    else:
+        train(game, args)

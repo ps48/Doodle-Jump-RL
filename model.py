@@ -29,9 +29,8 @@ class Deep_QNet(nn.Module):
         return fc1_res
 
     def save(self, file_name='model.pth'):
-        model_folder_path = './model'
-        if not os.path.exists(model_folder_path):
-            os.makedirs(model_folder_path)
+        model_folder_path = './model_dqn'
+        os.makedirs(model_folder_path, exist_ok=True)
         file_name = os.path.join(model_folder_path, file_name)
         torch.save(self.state_dict(), file_name)
 
@@ -44,7 +43,7 @@ class Deep_RQNet(nn.Module):
         # self.hidden = (Variable(torch.zeros(1, 1, 256).float()), Variable(torch.zeros(1, 1, 256).float()))
 
         # GRU has a single hidden state
-        self.hidden = Variable(torch.randn(1, 1, 256).float())
+        # self.hidden = Variable(torch.randn(1, 1, 256).float())
         self.conv1 = nn.Conv2d(1, 32, 8, 4, bias=True, padding=2)
         self.maxpool1 = nn.MaxPool2d(2, stride=2, ceil_mode=True)
         self.conv2 = nn.Conv2d(32, 64, 4, 2, bias=True, padding=1)
@@ -65,16 +64,15 @@ class Deep_RQNet(nn.Module):
         maxpool3_res = self.maxpool3(conv3_res)
         flattened_res = torch.reshape(maxpool3_res, (-1, 256))
         flattened_res = flattened_res.unsqueeze(1)
-        rnn_res, last_hidden = self.rnn(flattened_res, self.hidden)
+        rnn_res, last_hidden = self.rnn(flattened_res)
         fc1_res = self.fc1(rnn_res)
         fc2_res = self.fc2(fc1_res)
         fc2_res = fc2_res.squeeze(1)
         return fc2_res
 
     def save(self, file_name='model.pth'):
-        model_folder_path = './model'
-        if not os.path.exists(model_folder_path):
-            os.makedirs(model_folder_path)
+        model_folder_path = './model_drqn'
+        os.makedirs(model_folder_path, exist_ok=True)
         file_name = os.path.join(model_folder_path, file_name)
         torch.save(self.state_dict(), file_name)
 
