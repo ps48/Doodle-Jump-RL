@@ -77,7 +77,7 @@ def train():
     total_score = 0
     record = 0
     agent = Agent()
-    game = DoodleJump()
+    game = DoodleJump() # can pass in 'EASY', 'MEDIUM', 'DIFFICULT' in the constructor. default is EASY.
     print("Now playing")
     while True:
         # get old state
