@@ -6,7 +6,22 @@ import time
 
 path = './game/'
 class DoodleJump:
-    def __init__(self):
+    def __init__(self, difficulty='EASY'):
+
+        # To change the difficulty of the game, only tune these two parameters:
+        # inter_platform_distance - distance between two platforms at two consecutive levels.
+        # second_platform_prob - the probability with which you need two platforms at the same level.
+        if difficulty == "HARD":
+            self.inter_platform_distance = 100
+            self.second_platform_prob = 700
+        elif difficulty == "MEDIUM":
+            self.inter_platform_distance = 90
+            self.second_platform_prob = 750
+        else: # EASY
+            self.inter_platform_distance = 80
+            self.second_platform_prob = 850
+
+
         self.screen = pygame.display.set_mode((800, 800))
         self.green = pygame.image.load(path+"assets/green.png").convert_alpha()
         pygame.font.init()
@@ -19,9 +34,11 @@ class DoodleJump:
         self.playerRight_1 = pygame.image.load(path+"assets/right_1.png").convert_alpha()
         self.playerLeft = pygame.image.load(path+"assets/left.png").convert_alpha()
         self.playerLeft_1 = pygame.image.load(path+"assets/left_1.png").convert_alpha()
+        self.playerdead = pygame.image.load(path+"assets/playerdead.png").convert_alpha()
         self.spring = pygame.image.load(path+"assets/spring.png").convert_alpha()
         self.spring_1 = pygame.image.load(path+"assets/spring_1.png").convert_alpha()
         self.monster =pygame.image.load(path+"assets/monster1.png").convert_alpha()
+        self.monsterdead =pygame.image.load(path+"assets/monsterdead.png").convert_alpha()
         self.direction = 0
         self.playerx = 400
         self.playery = 400
@@ -33,13 +50,13 @@ class DoodleJump:
         self.gravity = 0
         self.xmovement = 0
         self.die= 0
-        self.inter_platform_distance = 80
         self.timer = None
         self.clock = pygame.time.Clock()
         self.generatePlatforms()
 
     def updatePlayer(self):
         if self.die==1:
+            self.screen.blit(self.playerdead, (self.playerx, self.playery - self.cameray))
             return
         if not self.jump:
             self.playery += self.gravity
@@ -79,6 +96,7 @@ class DoodleJump:
                 self.screen.blit(self.playerLeft_1, (self.playerx, self.playery - self.cameray))
             else:
                 self.screen.blit(self.playerLeft, (self.playerx, self.playery - self.cameray))
+                
 
     def updatePlatforms(self):
         for p in self.platforms:
@@ -137,16 +155,34 @@ class DoodleJump:
                     x2 = random.randint(0, 700)
                 self.platforms.append([x2, self.platforms[-2][1] - self.inter_platform_distance, platform2, 0])
                 
+                second_platform_prob = random.randint(0, 1000)
+                if second_platform_prob <= self.second_platform_prob:
+                    platform2 = random.randint(0, 1000)
+                    if platform2 < 800:
+                        platform2 = 0
+                    elif platform2 < 900:
+                        platform2 = 1
+                    else:
+                        platform2 = 2
+                    x2 = x1
+                    while abs(x1 - x2) < 200:
+                        x2 = random.randint(0, 700)
+                    self.platforms.append([x2, self.platforms[-2][1] - self.inter_platform_distance, platform2, 0])
+                    
                 coords = self.platforms[-1]
                 check = random.randint(0, 1000)
-                if check > 900 and platform2 == 0:
+
+                if check > 900 and coords[2] == 0:
                     self.springs.append([coords[0], coords[1] - 25, 0])
 
-                elif check>860 and platform2 == 0:
+                elif check>860 and coords[2] == 0:
                     self.monsters.append([coords[0], coords[1]- 50, 0])
 
-                print("popping 1st platform ",self.platforms.pop(0))
-                print("popping 2nd platform ", self.platforms.pop(0))
+                first_platform_popped = self.platforms.pop(0)
+                print("popping 1st platform ", first_platform_popped)
+                if self.platforms[0][1] == first_platform_popped[1]:
+                    print("popping 2nd platform ", self.platforms.pop(0))
+                
                 self.score += 100
                 score_increment = True
 
@@ -171,6 +207,7 @@ class DoodleJump:
         for monster in self.monsters:
             self.screen.blit(self.monster, (monster[0], monster[1] -self.cameray))
             if pygame.Rect(monster[0], monster[1], self.monster.get_width(), self.monster.get_height()).colliderect(pygame.Rect(self.playerx, self.playery, self.playerRight.get_width(), self.playerRight.get_height())):
+                self.screen.blit(self.monsterdead, (monster[0], monster[1] -self.cameray))
                 self.die=1
 
         return score_increment
@@ -188,17 +225,19 @@ class DoodleJump:
                 platform1 = 2
             self.platforms.append([x1, on, platform1, 0])
 
-            x2 = x1
-            while abs(x1 - x2) < 200:
-                x2 = random.randint(0, 700)
-            platform2 = random.randint(0, 1000)
-            if platform2 < 800:
-                platform2 = 0
-            elif platform2 < 900:
-                platform2 = 1
-            else:
-                platform2 = 2
-            self.platforms.append([x2, on, platform2, 0])
+            second_platform_prob = random.randint(0, 1000)
+            if second_platform_prob <= self.second_platform_prob:    
+                x2 = x1
+                while abs(x1 - x2) < 200:
+                    x2 = random.randint(0, 700)
+                platform2 = random.randint(0, 1000)
+                if platform2 < 800:
+                    platform2 = 0
+                elif platform2 < 900:
+                    platform2 = 1
+                else:
+                    platform2 = 2
+                self.platforms.append([x2, on, platform2, 0])
 
             on -= self.inter_platform_distance
 
@@ -340,6 +379,9 @@ class DoodleJump:
             - resets all elements of the game
             - to be called when agent dies
         """
+        #If game freezes comment the for loop below
+        for i in range(50000000):
+            halt=1
         old_score = self.score
         self.cameray = 0
         self.score = 0

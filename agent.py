@@ -89,7 +89,7 @@ def train():
     total_score = 0
     record = 0
     agent = Agent()
-    game = DoodleJump()
+    game = DoodleJump() # can pass in 'EASY', 'MEDIUM', 'DIFFICULT' in the constructor. default is EASY.
     print("Now playing")
     while True:
         # get old state
@@ -126,4 +126,5 @@ def train():
             plot_mean_scores.append(mean_score)
             plot(plot_scores, plot_mean_scores)
 
-train()
+if __name__ == "__main__":
+    train()
