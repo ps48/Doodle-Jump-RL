@@ -27,6 +27,8 @@ class Agent:
             self.model = Deep_QNet()
         elif args.model=="drqn":
             self.model = Deep_RQNet()
+        if args.model_path:
+            self.model.load_state_dict(torch.load(args.model_path))
         self.trainer = QTrainer(model=self.model, lr=self.lr, gamma=self.gamma, device=self.device)
 
     def get_state(self, game):
@@ -124,7 +126,7 @@ if __name__ == "__main__":
     parser.add_argument("--human", action="store_true", help="playing the game manually without agent")
     parser.add_argument("-d", "--difficulty", type=str, default="EASY", choices=["EASY", "MEDIUM", "HARD"], help="select difficulty of the game")
     parser.add_argument("-m", "--model", type=str, default="dqn", choices=["dqn", "drqn"], help="select model to train the agent")
-    parser.add_argument("-w", "--weights", type=str, help="path to weights of an earlier trained model")
+    parser.add_argument("-p", "--model_path", type=str, help="path to weights of an earlier trained model")
     parser.add_argument("-lr", "--learning_rate", type=float, default=0.001, help="set learning rate for training the model")
     parser.add_argument("-g", "--gamma", type=float, default=0.9, help="set discount factor for q learning")
     parser.add_argument("--max_memory", type=int, default=10000, help="Buffer memory size for long training")
