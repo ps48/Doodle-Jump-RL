@@ -43,7 +43,7 @@ class Deep_RQNet(nn.Module):
         # self.hidden = (Variable(torch.zeros(1, 1, 256).float()), Variable(torch.zeros(1, 1, 256).float()))
 
         # GRU has a single hidden state
-        # self.hidden = Variable(torch.randn(1, 1, 256).float())
+        self.hidden = nn.Parameter(Variable(torch.zeros(1, 1, 256).float()))
         self.conv1 = nn.Conv2d(1, 32, 8, 4, bias=True, padding=2)
         self.maxpool1 = nn.MaxPool2d(2, stride=2, ceil_mode=True)
         self.conv2 = nn.Conv2d(32, 64, 4, 2, bias=True, padding=1)
@@ -64,7 +64,9 @@ class Deep_RQNet(nn.Module):
         maxpool3_res = self.maxpool3(conv3_res)
         flattened_res = torch.reshape(maxpool3_res, (-1, 256))
         flattened_res = flattened_res.unsqueeze(1)
-        rnn_res, last_hidden = self.rnn(flattened_res)
+
+        rnn_res, hidden = self.rnn(flattened_res, self.hidden)
+        self.hidden = nn.Parameter(hidden)
         fc1_res = self.fc1(rnn_res)
         fc2_res = self.fc2(fc1_res)
         fc2_res = fc2_res.squeeze(1)
@@ -108,7 +110,7 @@ class QTrainer:
         for idx in range(len(done)):
             Q_new = reward[idx]
             if not done[idx]:
-                Q_new = reward[idx] + self.gamma * torch.max(self.model(next_state[idx]))
+                Q_new = reward[idx] + self.gamma * torch.max(self.model(next_state[idx])) 
 
             target[idx][torch.argmax(action[idx]).item()] = Q_new
 

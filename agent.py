@@ -7,6 +7,7 @@ import torch
 from collections import deque
 from game.doodlejump import DoodleJump
 from model import Deep_QNet, Deep_RQNet, QTrainer
+# from torch.autograd import Variable
 from helper import plot
 
 
@@ -82,6 +83,7 @@ def train(game, args):
     record = 0
     agent = Agent(args)
     print("Now playing")
+    # hidden = torch.Parameter(Variable(torch.randn(1, 1, 256).float()))
     while True:
         # get old state
         state_old = agent.get_state(game)
@@ -115,7 +117,9 @@ def train(game, args):
             total_score += score
             mean_score = total_score / agent.n_games
             plot_mean_scores.append(mean_score)
-            plot(plot_scores, plot_mean_scores)
+            if agent.n_games%50 == 0:
+                plot(plot_scores, plot_mean_scores)
+                print(mean_score, "mean")
 
 
 if __name__ == "__main__":
