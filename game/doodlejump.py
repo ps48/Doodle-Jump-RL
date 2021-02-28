@@ -40,8 +40,9 @@ class DoodleJump:
         self.score = 0
         self.direction = 0
         self.playerx = 400
-        self.playery = 400
-        self.platforms = [[400, 500, 0, 0]]
+        self.playery = 450
+        self.platforms = [[400, 500, 0, 0], [400, 400, 0, 0], [400, 300, 0, 0], [400, 200, 0, 0], 
+                            [400, 100, 0, 0], [400, 0, 0, 0], [400, -100, 0, 0], [400, -200, 0, 0]]
         self.springs = []
         self.monsters =[]
         self.cameray = 0
@@ -199,8 +200,8 @@ class DoodleJump:
             else:
                 self.screen.blit(self.spring, (spring[0], spring[1] - self.cameray))
             if pygame.Rect(spring[0], spring[1], self.spring.get_width(), self.spring.get_height()).colliderect(pygame.Rect(self.playerx, self.playery, self.playerRight.get_width(), self.playerRight.get_height())):
-                self.jump = 25
-                self.cameray -= 25
+                self.jump = 35
+                self.cameray -= 40
         for monster in self.monsters:
             self.screen.blit(self.monster, (monster[0], monster[1] -self.cameray))
             if pygame.Rect(monster[0], monster[1], self.monster.get_width(), self.monster.get_height()).colliderect(pygame.Rect(self.playerx, self.playery, self.playerRight.get_width(), self.playerRight.get_height())):
