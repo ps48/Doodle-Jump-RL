@@ -77,7 +77,7 @@ class Deep_RQNet(nn.Module):
         torch.save(self.state_dict(), file_name)
 
 class QTrainer:
-    def __init__(self, model, lr, gamma, device):
+    def __init__(self, model, lr, gamma, device, writer):
         super(QTrainer, self). __init__()
         self.lr = lr
         self.gamma = gamma
@@ -86,6 +86,9 @@ class QTrainer:
         self.criterion = nn.MSELoss()
         self.device = device
         self.model.to(self.device)
+        self.cntr = 0
+        self.total_loss = 0
+        self.writer = writer
 
     def train_step(self, state, action, reward, next_state, done):
         state = torch.tensor(state, dtype=torch.float).to(self.device)
@@ -114,5 +117,10 @@ class QTrainer:
 
         self.optimizer.zero_grad()
         loss = self.criterion(target, pred)
+        self.total_loss += loss.item()
+        self.cntr += 1
+        if self.writer is not None:
+          self.writer.add_scalar('TrainLoss', self.total_loss, self.cntr)
+          self.writer.add_scalar('LearningRate', self.lr, self.cntr)
         loss.backward()
         self.optimizer.step()

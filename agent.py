@@ -8,7 +8,7 @@ from collections import deque
 from game.doodlejump import DoodleJump
 from model import Deep_QNet, Deep_RQNet, QTrainer
 from helper import plot
-
+from torch.utils.tensorboard import SummaryWriter
 
 class Agent:
     def __init__(self, args):
@@ -29,7 +29,11 @@ class Agent:
             self.model = Deep_RQNet()
         if args.model_path:
             self.model.load_state_dict(torch.load(args.model_path))
-        self.trainer = QTrainer(model=self.model, lr=self.lr, gamma=self.gamma, device=self.device)
+        if args.tensorboard_logs:
+          self.writer = SummaryWriter(log_dir="./logs/")
+        else:
+          self.writer = None
+        self.trainer = QTrainer(model=self.model, lr=self.lr, gamma=self.gamma, device=self.device, writer=self.writer)
 
     def get_state(self, game):
         state = game.getCurrentFrame()
@@ -134,6 +138,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=1000, help="Batch size for long training")
     parser.add_argument("--height", type=int, default=80, help="set the image height post resize")
     parser.add_argument("--width", type=int, default=80, help="set the image width post resize")
+    parser.add_argument("--tensorboard_logs", action="store_true", help="enable tensorboard summary writer")
 
     args = parser.parse_args()
     # can pass in 'EASY', 'MEDIUM', 'DIFFICULT' in the constructor. default is EASY.
