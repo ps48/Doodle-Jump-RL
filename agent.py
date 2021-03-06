@@ -15,6 +15,18 @@ class Agent:
         self.n_games = 0
         self.epsilon = 0
         self.ctr = 1
+        seed = agrs.seed
+        seed = 42
+        os.environ['PYTHONHASHSEED'] = str(seed)
+        # Torch RNG
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        # Python RNG
+        np.random.seed(seed)
+        random.seed(seed)
+        if args.server:
+            os.environ['SDL_VIDEODRIVER']='dummy'
         self.store_frames = args.store_frames
         self.image_h = args.height
         self.image_w = args.width
@@ -134,6 +146,8 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=1000, help="Batch size for long training")
     parser.add_argument("--height", type=int, default=80, help="set the image height post resize")
     parser.add_argument("--width", type=int, default=80, help="set the image width post resize")
+    parser.add_argument("--server", action="store_true", help="when training on server add this flag")
+    parser.add_argument("--seed", type=int, default=42, help="change seed value for creating game randomness")
 
     args = parser.parse_args()
     # can pass in 'EASY', 'MEDIUM', 'DIFFICULT' in the constructor. default is EASY.
