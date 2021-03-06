@@ -376,7 +376,11 @@ class DoodleJump:
         self.die = 0
         self.springs = []
         self.monsters =[]
+<<<<<<< HEAD
         self.platforms = [[400, 500, 0, 0], [400, 400, 0, 0], [400, 300, 0, 0], [400, 200, 0, 0],
+=======
+        self.platforms = [[400, 500, 0, 0], [400, 400, 0, 0], [400, 300, 0, 0], [400, 200, 0, 0], 
+>>>>>>> 8b56c83d84c105041e5e1ad6f569dc217fcf3d97
                             [400, 100, 0, 0], [400, 0, 0, 0], [400, -100, 0, 0], [400, -200, 0, 0]]
         self.generatePlatforms()
         self.playerx = 400
