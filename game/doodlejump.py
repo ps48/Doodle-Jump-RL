@@ -1,3 +1,4 @@
+import os
 import pygame
 from pygame.locals import *
 import sys
@@ -6,7 +7,7 @@ import time
 
 path = './game/'
 class DoodleJump:
-    def __init__(self, difficulty='EASY'):
+    def __init__(self, difficulty='EASY', server=False):
 
         # To change the difficulty of the game, only tune these two parameters:
         # inter_platform_distance - distance between two platforms at two consecutive levels.
@@ -20,6 +21,9 @@ class DoodleJump:
         else: # EASY
             self.inter_platform_distance = 80
             self.second_platform_prob = 850
+
+        if server:
+            os.environ['SDL_VIDEODRIVER']='dummy'
 
         pygame.font.init()
         self.screen = pygame.display.set_mode((800, 800))
@@ -376,7 +380,7 @@ class DoodleJump:
         self.die = 0
         self.springs = []
         self.monsters =[]
-        self.platforms = [[400, 500, 0, 0], [400, 400, 0, 0], [400, 300, 0, 0], [400, 200, 0, 0], 
+        self.platforms = [[400, 500, 0, 0], [400, 400, 0, 0], [400, 300, 0, 0], [400, 200, 0, 0],
                             [400, 100, 0, 0], [400, 0, 0, 0], [400, -100, 0, 0], [400, -200, 0, 0]]
         self.generatePlatforms()
         self.playerx = 400

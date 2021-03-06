@@ -15,7 +15,7 @@ class Agent:
         self.n_games = 0
         self.epsilon = 0
         self.ctr = 1
-        seed = agrs.seed
+        seed = args.seed
         seed = 42
         os.environ['PYTHONHASHSEED'] = str(seed)
         # Torch RNG
@@ -25,8 +25,6 @@ class Agent:
         # Python RNG
         np.random.seed(seed)
         random.seed(seed)
-        if args.server:
-            os.environ['SDL_VIDEODRIVER']='dummy'
         self.store_frames = args.store_frames
         self.image_h = args.height
         self.image_w = args.width
@@ -151,7 +149,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     # can pass in 'EASY', 'MEDIUM', 'DIFFICULT' in the constructor. default is EASY.
-    game = DoodleJump(difficulty=args.difficulty)
+    game = DoodleJump(difficulty=args.difficulty, server=args.server)
     if args.human:
         game.run()
     else:
