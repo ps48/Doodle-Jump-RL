@@ -16,7 +16,7 @@ class Agent:
         self.epsilon = 0
         self.ctr = 1
         seed = args.seed
-        seed = 42
+        self.exploration = args.exploration
         os.environ['PYTHONHASHSEED'] = str(seed)
         # Torch RNG
         torch.manual_seed(seed)
@@ -70,7 +70,7 @@ class Agent:
 
     def get_action(self, state):
         # random moves: tradeoff exploration / exploitation
-        self.epsilon = 80 - self.n_games
+        self.epsilon = self.exploration - self.n_games
         final_move = [0,0,0]
         if random.randint(0, 200) < self.epsilon:
             move = random.randint(0, 2)
@@ -143,6 +143,7 @@ if __name__ == "__main__":
     parser.add_argument("--store_frames", action="store_true", help="store frames encountered during game play by agent")
     parser.add_argument("--batch_size", type=int, default=1000, help="Batch size for long training")
     parser.add_argument("--reward_type", type=int, default=1, choices=[1,2,3], help="types of rewards formulation")
+    parser.add_argument("--exploration", type=int, default=40, help="number of games to explore")
     parser.add_argument("--height", type=int, default=80, help="set the image height post resize")
     parser.add_argument("--width", type=int, default=80, help="set the image width post resize")
     parser.add_argument("--server", action="store_true", help="when training on server add this flag")

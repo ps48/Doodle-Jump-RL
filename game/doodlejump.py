@@ -186,9 +186,6 @@ class DoodleJump:
                     self.monsters.append([coords[0], coords[1]- 50, 0])
 
                 first_platform_popped = self.platforms.pop(0)
-                print("popping 1st platform ", first_platform_popped)
-                if self.platforms[0][1] == first_platform_popped[1]:
-                    print("popping 2nd platform ", self.platforms.pop(0))
 
                 self.score += 100
                 score_increment = True
