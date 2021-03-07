@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 import os
 
+
 class Deep_QNet(nn.Module):
     def __init__(self):
         super().__init__()
@@ -76,6 +77,7 @@ class Deep_RQNet(nn.Module):
         file_name = os.path.join(model_folder_path, file_name)
         torch.save(self.state_dict(), file_name)
 
+
 class QTrainer:
     def __init__(self, model, lr, gamma, device):
         super(QTrainer, self). __init__()
@@ -109,10 +111,10 @@ class QTrainer:
             Q_new = reward[idx]
             if not done[idx]:
                 Q_new = reward[idx] + self.gamma * torch.max(self.model(next_state[idx]))
-
             target[idx][torch.argmax(action[idx]).item()] = Q_new
 
         self.optimizer.zero_grad()
         loss = self.criterion(target, pred)
         loss.backward()
         self.optimizer.step()
+        return loss.item()

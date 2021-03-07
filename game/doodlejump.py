@@ -9,7 +9,6 @@ from rewards import formulate_reward
 path = './game/'
 class DoodleJump:
     def __init__(self, difficulty='EASY', server=False, reward_type=1):
-
         # To change the difficulty of the game, only tune these two parameters:
         # inter_platform_distance - distance between two platforms at two consecutive levels.
         # second_platform_prob - the probability with which you need two platforms at the same level.
@@ -390,6 +389,7 @@ class DoodleJump:
         self.generatePlatforms()
         self.playerx = 400
         self.playery = 400
+        self.timer = None
         return old_score
 
     def run(self):

@@ -1,4 +1,5 @@
 import os
+import datetime
 import argparse
 import random
 import numpy as np
@@ -7,7 +8,8 @@ import torch
 from collections import deque
 from game.doodlejump import DoodleJump
 from model import Deep_QNet, Deep_RQNet, QTrainer
-from helper import plot
+from helper import write_model_params
+from torch.utils.tensorboard import SummaryWriter
 
 
 class Agent:
@@ -63,10 +65,10 @@ class Agent:
         else:
             mini_sample = self.memory
         states, actions, rewards, next_states, dones = zip(*mini_sample)
-        self.trainer.train_step(states, actions, rewards, next_states, dones)
+        return self.trainer.train_step(states, actions, rewards, next_states, dones)
 
     def train_short_memory(self, state, action, reward, next_state, done):
-        self.trainer.train_step(state, action, reward, next_state, done)
+        return self.trainer.train_step(state, action, reward, next_state, done)
 
     def get_action(self, state):
         # random moves: tradeoff exploration / exploitation
@@ -84,17 +86,22 @@ class Agent:
         return final_move
 
 
-def train(game, args):
+def train(game, args, writer):
     if args.macos:
         os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
-    plot_scores = []
-    plot_mean_scores = []
+    sum_rewards = 0
+    sum_short_loss = 0
     total_score = 0
     record = 0
+    loop_ctr = 0
     agent = Agent(args)
+    dummy_input = torch.randn(1, 1, args.height, args.width).to(agent.device)
+    writer.add_graph(agent.model, dummy_input)
     print("Now playing")
-    while True:
+
+    while agent.n_games != args.max_games:
+        loop_ctr += 1
         # get old state
         state_old = agent.get_state(game)
 
@@ -104,33 +111,50 @@ def train(game, args):
         # perform move and get new state
         reward, done, score = game.playStep(final_move)
         state_new = agent.get_state(game)
+        sum_rewards += reward
 
         # train short memory
-        agent.train_short_memory(state_old, final_move, reward, state_new, [done])
+        short_loss = agent.train_short_memory(state_old, final_move, reward, state_new, [done])
+        writer.add_scalar('Game/Short_Episodes', loop_ctr, loop_ctr)
+        sum_short_loss += short_loss
 
         # remember
         agent.remember(state_old, final_move, reward, state_new, done)
+
+        if loop_ctr%25 == 0:
+            writer.add_scalar('Loss/Short_train', sum_short_loss/loop_ctr, loop_ctr)
+            writer.add_scalar('Reward/mean_reward', sum_rewards/loop_ctr, loop_ctr)
 
         if done:
             # train long memory, plot result
             game.gameReboot()
             agent.n_games += 1
-            agent.train_long_memory()
+            long_loss = agent.train_long_memory()
+            writer.add_scalar('Loss/Long_train', long_loss, agent.n_games)
+            writer.add_scalar('Game/Episodes', agent.n_games, agent.n_games)
 
             if score > record:
                 record = score
                 agent.model.save()
 
             print('Game', agent.n_games, 'Score', score, 'Record:', record)
+            writer.add_scalar('Score/High_Score', record, agent.n_games)
 
-            plot_scores.append(score)
             total_score += score
             mean_score = total_score / agent.n_games
-            plot_mean_scores.append(mean_score)
-            plot(plot_scores, plot_mean_scores)
+            writer.add_scalars('Score', {'Curr_Score':score, 'Mean_Score': mean_score}, agent.n_games)
+            write_model_params(agent.model, agent.n_games, writer)
 
+    writer.add_hparams(hparam_dict=vars(args),
+                        metric_dict={'long_loss_loss': long_loss,
+                                     'mean_short_loss': sum_short_loss/loop_ctr,
+                                     'mean_reward': sum_rewards/loop_ctr,
+                                     'high_score': record,
+                                     'mean_score': mean_score
+                                     })
 
 if __name__ == "__main__":
+
     parser = argparse.ArgumentParser(description='RL Agent for Doodle Jump')
     parser.add_argument("--macos", action="store_true", help="select model to train the agent")
     parser.add_argument("--human", action="store_true", help="playing the game manually without agent")
@@ -148,11 +172,18 @@ if __name__ == "__main__":
     parser.add_argument("--width", type=int, default=80, help="set the image width post resize")
     parser.add_argument("--server", action="store_true", help="when training on server add this flag")
     parser.add_argument("--seed", type=int, default=42, help="change seed value for creating game randomness")
-
+    parser.add_argument("--max_games", type=int, default=1000, help="set the max number of games to be played by the agent")
     args = parser.parse_args()
-    # can pass in 'EASY', 'MEDIUM', 'DIFFICULT' in the constructor. default is EASY.
-    game = DoodleJump(difficulty=args.difficulty, server=args.server)
+
+    hyper_params = "_d_"+args.difficulty+"_m_"+args.model+"_lr_"+str(args.learning_rate)+"_g_"+str(args.gamma)+"_mem_"+str(args.max_memory)+"_batch_"+str(args.batch_size)
+    arg_dict = vars(args)
+
+    dstr = datetime.datetime.now().strftime("_dt-%Y-%m-%d-%H-%M-%S")
+    writer = SummaryWriter(log_dir="model"+hyper_params+dstr)
+    writer.add_text('Model Parameters: ', str(arg_dict), 0)
+
+    game = DoodleJump(difficulty=args.difficulty)
     if args.human:
         game.run()
     else:
-        train(game, args)
+        train(game, args, writer)
