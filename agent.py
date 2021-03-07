@@ -142,6 +142,7 @@ if __name__ == "__main__":
     parser.add_argument("--max_memory", type=int, default=10000, help="Buffer memory size for long training")
     parser.add_argument("--store_frames", action="store_true", help="store frames encountered during game play by agent")
     parser.add_argument("--batch_size", type=int, default=1000, help="Batch size for long training")
+    parser.add_argument("--reward_type", type=int, default=1, choices=[1,2,3], help="types of rewards formulation")
     parser.add_argument("--height", type=int, default=80, help="set the image height post resize")
     parser.add_argument("--width", type=int, default=80, help="set the image width post resize")
     parser.add_argument("--server", action="store_true", help="when training on server add this flag")

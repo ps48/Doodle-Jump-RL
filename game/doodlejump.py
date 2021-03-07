@@ -4,10 +4,11 @@ from pygame.locals import *
 import sys
 import random
 import time
+from rewards import formulate_reward
 
 path = './game/'
 class DoodleJump:
-    def __init__(self, difficulty='EASY', server=False):
+    def __init__(self, difficulty='EASY', server=False, reward_type=1):
 
         # To change the difficulty of the game, only tune these two parameters:
         # inter_platform_distance - distance between two platforms at two consecutive levels.
@@ -26,6 +27,7 @@ class DoodleJump:
             os.environ['SDL_VIDEODRIVER']='dummy'
 
         pygame.font.init()
+        self.reward_type = reward_type
         self.screen = pygame.display.set_mode((800, 800))
         self.green = pygame.image.load(path+"assets/green.png").convert_alpha()
         self.font = pygame.font.SysFont("Arial", 25)
@@ -130,6 +132,9 @@ class DoodleJump:
 
     def drawPlatforms(self):
         score_increment = False
+        spring_touch = False
+        monster_touch = False
+
         for p in self.platforms:
             # print("platform, ",(self.platforms))
             check = self.platforms[0][1] - self.cameray
@@ -206,13 +211,16 @@ class DoodleJump:
             if pygame.Rect(spring[0], spring[1], self.spring.get_width(), self.spring.get_height()).colliderect(pygame.Rect(self.playerx, self.playery, self.playerRight.get_width(), self.playerRight.get_height())):
                 self.jump = 35
                 self.cameray -= 40
+                spring_touch = True
+
         for monster in self.monsters:
             self.screen.blit(self.monster, (monster[0], monster[1] -self.cameray))
             if pygame.Rect(monster[0], monster[1], self.monster.get_width(), self.monster.get_height()).colliderect(pygame.Rect(self.playerx, self.playery, self.playerRight.get_width(), self.playerRight.get_height())):
                 self.screen.blit(self.monsterdead, (monster[0], monster[1] -self.cameray))
                 self.die=1
+                monster_touch = True
 
-        return score_increment
+        return score_increment, spring_touch, monster_touch
 
     def generatePlatforms(self):
         on = 800
@@ -325,7 +333,7 @@ class DoodleJump:
         """
         last_cameray = self.cameray
         terminal = False
-        reward = 0
+        reward = formulate_reward(self.reward_type, "DEFAULT")
         return_score = self.score
 
         pygame.display.flip()
@@ -337,14 +345,14 @@ class DoodleJump:
         if self.die==1 or (self.playery - self.cameray > 900):
             return_score = self.gameReboot()
             terminal = True
-            reward = -1
+            reward = formulate_reward(self.reward_type, "DEAD")
             print("terminated: Agent Died")
 
         self.drawGrid()
-        if_score_add = self.drawPlatforms()
+        score_inc, spring_touch, monster_touch = self.drawPlatforms()
 
-        if if_score_add:
-            reward = 2
+        if score_inc:
+            reward = formulate_reward(self.reward_type, "SCORED", spring_touch, monster_touch, self.score)
             self.timer = time.time()
         elif last_cameray == self.cameray:
             # check if doodler is on the same place for past 10 sec
@@ -356,7 +364,7 @@ class DoodleJump:
                 if (now_time - self.timer) > 100:
                     return_score = self.gameReboot()
                     terminal = True
-                    reward = -1
+                    reward = formulate_reward(self.reward_type, "STUCK")
                     print("terminated: Agent stuck")
                     self.timer = time.time()
 
