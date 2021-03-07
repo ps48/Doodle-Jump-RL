@@ -29,8 +29,8 @@ class Deep_QNet(nn.Module):
         fc1_res = self.fc1(F.relu(flattened_res))
         return fc1_res
 
-    def save(self, file_name='model.pth'):
-        model_folder_path = './model_dqn'
+    def save(self, file_name='model.pth', model_folder_path='./model_dqn'):
+        # model_folder_path = './model_dqn'
         os.makedirs(model_folder_path, exist_ok=True)
         file_name = os.path.join(model_folder_path, file_name)
         torch.save(self.state_dict(), file_name)
@@ -71,8 +71,8 @@ class Deep_RQNet(nn.Module):
         fc2_res = fc2_res.squeeze(1)
         return fc2_res
 
-    def save(self, file_name='model.pth'):
-        model_folder_path = './model_drqn'
+    def save(self, file_name='model.pth', model_folder_path='./model_drqn'):
+        # model_folder_path = './model_drqn'
         os.makedirs(model_folder_path, exist_ok=True)
         file_name = os.path.join(model_folder_path, file_name)
         torch.save(self.state_dict(), file_name)
