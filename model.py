@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 import os
 
+
 class Deep_QNet(nn.Module):
     def __init__(self):
         super().__init__()
@@ -75,6 +76,7 @@ class Deep_RQNet(nn.Module):
         os.makedirs(model_folder_path, exist_ok=True)
         file_name = os.path.join(model_folder_path, file_name)
         torch.save(self.state_dict(), file_name)
+
 
 class QTrainer:
     def __init__(self, model, lr, gamma, device):

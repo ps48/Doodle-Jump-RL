@@ -1,4 +1,5 @@
 import os
+import datetime
 import argparse
 import random
 import numpy as np
@@ -7,8 +8,9 @@ import torch
 from collections import deque
 from game.doodlejump import DoodleJump
 from model import Deep_QNet, Deep_RQNet, QTrainer
-from helper import plot
+from helper import write_model_params
 from torch.utils.tensorboard import SummaryWriter
+
 
 class Agent:
     def __init__(self, args):
@@ -30,9 +32,6 @@ class Agent:
         if args.model_path:
             self.model.load_state_dict(torch.load(args.model_path))
         self.trainer = QTrainer(model=self.model, lr=self.lr, gamma=self.gamma, device=self.device)
-
-    def get_model(self):
-        reutrn self.model
 
     def get_state(self, game):
         state = game.getCurrentFrame()
@@ -87,11 +86,11 @@ def train(game, args, writer):
     record = 0
     loop_ctr = 0
     agent = Agent(args)
-    dummy_input = torch.randn(1, 1, args.height, args.width)
-    writer.add_graph(resnet18, dummy_input)
+    dummy_input = torch.randn(1, 1, args.height, args.width).to(agent.device)
+    writer.add_graph(agent.model, dummy_input)
     print("Now playing")
 
-    while True:
+    while agent.n_games != args.max_games:
         loop_ctr += 1
         # get old state
         state_old = agent.get_state(game)
@@ -106,6 +105,7 @@ def train(game, args, writer):
 
         # train short memory
         short_loss = agent.train_short_memory(state_old, final_move, reward, state_new, [done])
+        writer.add_scalar('Game/Short_Episodes', loop_ctr, loop_ctr)
         sum_short_loss += short_loss
 
         # remember
@@ -121,6 +121,7 @@ def train(game, args, writer):
             agent.n_games += 1
             long_loss = agent.train_long_memory()
             writer.add_scalar('Loss/Long_train', long_loss, agent.n_games)
+            writer.add_scalar('Game/Episodes', agent.n_games, agent.n_games)
 
             if score > record:
                 record = score
@@ -132,10 +133,18 @@ def train(game, args, writer):
             total_score += score
             mean_score = total_score / agent.n_games
             writer.add_scalars('Score', {'Curr_Score':score, 'Mean_Score': mean_score}, agent.n_games)
+            write_model_params(agent.model, agent.n_games, writer)
 
-
+    writer.add_hparams(hparam_dict=vars(args),
+                        metric_dict={'long_loss_loss': long_loss,
+                                     'mean_short_loss': sum_short_loss/loop_ctr,
+                                     'mean_reward': sum_rewards/loop_ctr,
+                                     'high_score': record,
+                                     'mean_score': mean_score
+                                     })
 
 if __name__ == "__main__":
+
     parser = argparse.ArgumentParser(description='RL Agent for Doodle Jump')
     parser.add_argument("--macos", action="store_true", help="select model to train the agent")
     parser.add_argument("--human", action="store_true", help="playing the game manually without agent")
@@ -149,11 +158,15 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=1000, help="Batch size for long training")
     parser.add_argument("--height", type=int, default=80, help="set the image height post resize")
     parser.add_argument("--width", type=int, default=80, help="set the image width post resize")
-
+    parser.add_argument("--max_games", type=int, default=1000, help="set the max number of games to be played by the agent")
     args = parser.parse_args()
 
-    hyper_params = "d_"+args.difficulty+"m_"+args.model+"lr_"+str(args.learning_rate)+"g_"+str(args.gamma)+"mem_"+str(args.max_memory)+"batch_"+str(args.batch_size)
-    writer = SummaryWriter(log_dir="model"+hyper_params)
+    hyper_params = "_d_"+args.difficulty+"_m_"+args.model+"_lr_"+str(args.learning_rate)+"_g_"+str(args.gamma)+"_mem_"+str(args.max_memory)+"_batch_"+str(args.batch_size)
+    arg_dict = vars(args)
+
+    dstr = datetime.datetime.now().strftime("_dt-%Y-%m-%d-%H-%M-%S")
+    writer = SummaryWriter(log_dir="model"+hyper_params+dstr)
+    writer.add_text('Model Parameters: ', str(arg_dict), 0)
 
     game = DoodleJump(difficulty=args.difficulty)
     if args.human:

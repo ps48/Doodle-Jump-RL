@@ -7,7 +7,6 @@ import time
 path = './game/'
 class DoodleJump:
     def __init__(self, difficulty='EASY'):
-
         # To change the difficulty of the game, only tune these two parameters:
         # inter_platform_distance - distance between two platforms at two consecutive levels.
         # second_platform_prob - the probability with which you need two platforms at the same level.
@@ -41,7 +40,7 @@ class DoodleJump:
         self.direction = 0
         self.playerx = 400
         self.playery = 450
-        self.platforms = [[400, 500, 0, 0], [400, 400, 0, 0], [400, 300, 0, 0], [400, 200, 0, 0], 
+        self.platforms = [[400, 500, 0, 0], [400, 400, 0, 0], [400, 300, 0, 0], [400, 200, 0, 0],
                             [400, 100, 0, 0], [400, 0, 0, 0], [400, -100, 0, 0], [400, -200, 0, 0]]
         self.springs = []
         self.monsters =[]
@@ -380,6 +379,7 @@ class DoodleJump:
         self.generatePlatforms()
         self.playerx = 400
         self.playery = 400
+        self.timer = None
         return old_score
 
     def run(self):
