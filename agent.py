@@ -135,7 +135,8 @@ def train(game, args, writer):
 
             if score > record:
                 record = score
-                agent.model.save()
+                # agent.model.save()
+                agent.model.save(model_folder_path="./model"+hyper_params+dstr)
 
             print('Game', agent.n_games, 'Score', score, 'Record:', record)
             writer.add_scalar('Score/High_Score', record, agent.n_games)
