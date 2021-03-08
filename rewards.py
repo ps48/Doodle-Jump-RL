@@ -1,5 +1,5 @@
 import os
-
+import math
 def formulate_reward(reward_type, reward_reason, spring_touch=False, monster_touch=False, score=0):
     """
         - Params
@@ -61,7 +61,7 @@ def formulate_reward(reward_type, reward_reason, spring_touch=False, monster_tou
         if reward_reason == "STUCK":
             reward = -2
         if reward_reason == "SCORED":
-            reward = 3 + log(score)
+            reward = 3 + math.log(score)
             if spring_touch:
                 reward += 3
             if monster_touch:

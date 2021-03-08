@@ -182,7 +182,7 @@ if __name__ == "__main__":
     writer = SummaryWriter(log_dir="model"+hyper_params+dstr)
     writer.add_text('Model Parameters: ', str(arg_dict), 0)
 
-    game = DoodleJump(difficulty=args.difficulty)
+    game = DoodleJump(difficulty=args.difficulty, server=args.server, reward_type=args.reward_type)
     if args.human:
         game.run()
     else:
