@@ -362,7 +362,6 @@ class DoodleJump:
                     terminal = True
                     reward = formulate_reward(self.reward_type, "STUCK")
                     print("terminated: Agent stuck")
-                    self.timer = time.time()
 
         self.updatePlayerByAction(actions)
         self.updatePlatforms()
