@@ -200,7 +200,7 @@ if __name__ == "__main__":
     parser.add_argument("--max_games", type=int, default=1000, help="set the max number of games to be played by the agent")
     args = parser.parse_args()
     
-    game = DoodleJump(difficulty=args.difficulty)
+    game = DoodleJump(difficulty=args.difficulty, server=args.server, reward_type=args.reward_type)
 
     if args.human:
         game.run()
