@@ -39,7 +39,7 @@ class Agent:
             self.model = Deep_QNet()
         elif args.model=="drqn":
             self.model = Deep_RQNet()
-        if args.model_path:
+        if args.model_path or args.test:
             self.model.load_state_dict(torch.load(args.model_path))
         self.trainer = QTrainer(model=self.model, lr=self.lr, gamma=self.gamma, device=self.device)
 
@@ -65,20 +65,23 @@ class Agent:
         else:
             mini_sample = self.memory
         states, actions, rewards, next_states, dones = zip(*mini_sample)
+        self.model.train()
         return self.trainer.train_step(states, actions, rewards, next_states, dones)
 
     def train_short_memory(self, state, action, reward, next_state, done):
+        self.model.train()
         return self.trainer.train_step(state, action, reward, next_state, done)
 
-    def get_action(self, state):
+    def get_action(self, state, test_mode=False):
         # random moves: tradeoff exploration / exploitation
         self.epsilon = self.exploration - self.n_games
         final_move = [0,0,0]
-        if random.randint(0, 200) < self.epsilon:
+        if random.randint(0, 200) < self.epsilon and not test_mode:
             move = random.randint(0, 2)
             final_move[move] = 1
         else:
             state0 = torch.tensor(state, dtype=torch.float).to(self.device)
+            self.model.eval()
             prediction = self.model(state0)
             move = torch.argmax(prediction).item()
             final_move[move] = 1
@@ -112,6 +115,7 @@ def train(game, args, writer):
         reward, done, score = game.playStep(final_move)
         state_new = agent.get_state(game)
         sum_rewards += reward
+        writer.add_scalar('Reward/curr_reward', reward, loop_ctr)
 
         # train short memory
         short_loss = agent.train_short_memory(state_old, final_move, reward, state_new, [done])
@@ -154,11 +158,31 @@ def train(game, args, writer):
                                      'mean_score': mean_score
                                      })
 
+def test(game, args):
+    if args.macos:
+        os.environ['KMP_DUPLICATE_LIB_OK']='True'
+    
+    record = 0
+    agent = Agent(args)
+    print("Now playing")
+    
+    while agent.n_games != args.max_games:
+        state_old = agent.get_state(game)
+        final_move = agent.get_action(state_old, test_mode=True)
+        reward, done, score = game.playStep(final_move)
+        if done:
+            game.gameReboot()
+            if score > record:
+                record = score
+            print('Game', agent.n_games, 'Score', score, 'Record:', record)
+    
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='RL Agent for Doodle Jump')
     parser.add_argument("--macos", action="store_true", help="select model to train the agent")
     parser.add_argument("--human", action="store_true", help="playing the game manually without agent")
+    parser.add_argument("--test", action="store_true", help="playing the game with a trained agent")
     parser.add_argument("-d", "--difficulty", type=str, default="EASY", choices=["EASY", "MEDIUM", "HARD"], help="select difficulty of the game")
     parser.add_argument("-m", "--model", type=str, default="dqn", choices=["dqn", "drqn"], help="select model to train the agent")
     parser.add_argument("-p", "--model_path", type=str, help="path to weights of an earlier trained model")
@@ -175,16 +199,20 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=42, help="change seed value for creating game randomness")
     parser.add_argument("--max_games", type=int, default=1000, help="set the max number of games to be played by the agent")
     args = parser.parse_args()
-
-    hyper_params = "_d_"+args.difficulty+"_m_"+args.model+"_lr_"+str(args.learning_rate)+"_g_"+str(args.gamma)+"_mem_"+str(args.max_memory)+"_batch_"+str(args.batch_size)
-    arg_dict = vars(args)
-
-    dstr = datetime.datetime.now().strftime("_dt-%Y-%m-%d-%H-%M-%S")
-    writer = SummaryWriter(log_dir="model"+hyper_params+dstr)
-    writer.add_text('Model Parameters: ', str(arg_dict), 0)
-
+    
     game = DoodleJump(difficulty=args.difficulty, server=args.server, reward_type=args.reward_type)
+
     if args.human:
         game.run()
+    elif args.test:
+        test(game, args)
     else:
+        hyper_params = "_d_"+args.difficulty+"_m_"+args.model+"_lr_"+str(args.learning_rate)+"_g_"+str(args.gamma)+"_mem_"+str(args.max_memory)+"_batch_"+str(args.batch_size)
+        arg_dict = vars(args)
+
+        dstr = datetime.datetime.now().strftime("_dt-%Y-%m-%d-%H-%M-%S")
+        writer = SummaryWriter(log_dir="model"+hyper_params+dstr)
+        writer.add_text('Model Parameters: ', str(arg_dict), 0)
+        
         train(game, args, writer)
+            
