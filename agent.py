@@ -51,16 +51,12 @@ class Agent:
         if args.model_path or args.test:
             self.model.load_state_dict(torch.load(args.model_path))
         self.trainer = QTrainer(model=self.model, lr=self.lr, gamma=self.gamma, device=self.device)
-
-    def get_state(self, game):
-        state = game.getCurrentFrame()
         
+        
+    def preprocess(self, state):
+        
+        # resize the image and then rotate
         img = cv2.resize(state, (self.image_w, self.image_h))
-        if self.image_c == 1:
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        else:
-            img = img[:, :, ::-1]
-
         M = cv2.getRotationMatrix2D((self.image_w / 2, self.image_h / 2), 270, 1.0)
         img = cv2.warpAffine(img, M, (self.image_h, self.image_w))
 
@@ -69,13 +65,27 @@ class Agent:
             cv2.imwrite("./image_dump/"+str(self.ctr)+".jpg", img)
             self.ctr+=1
             
+        imagenet_mean = [0.485, 0.456, 0.406]
+        imagenet_std = [0.229, 0.224, 0.225]
         if self.image_c == 1:
-            img = np.expand_dims(img, axis=0)
+            # convert the image to grayscale
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            # normalize the image with imagenet mean and std values
+            img = ((img/255.0) - np.mean(imagenet_mean))/np.mean(imagenet_std)
         else:
+            # normalize the image with imagenet mean and std values
+            img = ((img/255.0) - imagenet_mean)/imagenet_std
+            # change the shape from WxHxC to CxHxW for pytorch tensor
             img = img.transpose((2, 0, 1))
-            img = np.expand_dims(img, axis=0)
+        
+        # Add a axis for converting image to shape: 1xCxHxW
+        img = np.expand_dims(img, axis=0)
             
         return img
+
+    def get_state(self, game):
+        state = game.getCurrentFrame()
+        return self.preprocess(state)
 
     def remember(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done)) # popleft if MAX_MEMORY is reached
