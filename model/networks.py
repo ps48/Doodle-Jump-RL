@@ -1,8 +1,7 @@
 import torch
 import torch.nn as nn
-import torch.optim as optim
 import torch.nn.functional as F
-from torch.autograd import Variable
+import torchvision.models as models
 import os
 
 
@@ -30,7 +29,6 @@ class Deep_QNet(nn.Module):
         return fc1_res
 
     def save(self, file_name='model.pth', model_folder_path='./model_dqn'):
-        # model_folder_path = './model_dqn'
         os.makedirs(model_folder_path, exist_ok=True)
         file_name = os.path.join(model_folder_path, file_name)
         torch.save(self.state_dict(), file_name)
@@ -72,49 +70,78 @@ class Deep_RQNet(nn.Module):
         return fc2_res
 
     def save(self, file_name='model.pth', model_folder_path='./model_drqn'):
-        # model_folder_path = './model_drqn'
+        os.makedirs(model_folder_path, exist_ok=True)
+        file_name = os.path.join(model_folder_path, file_name)
+        torch.save(self.state_dict(), file_name)
+        
+        
+class DQ_Resnet18(nn.Module):
+    def __init__(self):
+        super().__init__()
+        resnet18 = models.resnet18(pretrained=True)
+        self.features = nn.ModuleList(resnet18.children())[:-1]
+        self.features = nn.Sequential(*self.features)
+        self.in_features = resnet18.fc.in_features
+        self.fc_res = nn.Linear(self.in_features, 3)
+    
+    def forward(self, x):
+        x = x.view(-1, 3, 224, 224)
+        x = self.features(x)
+        flattened_res = torch.reshape(x, (-1, self.in_features))
+        x = self.fc_res(flattened_res)
+        return x
+    
+    def save(self, file_name='model.pth', model_folder_path='./model_resnet18'):
+        os.makedirs(model_folder_path, exist_ok=True)
+        file_name = os.path.join(model_folder_path, file_name)
+        torch.save(self.state_dict(), file_name)
+        
+
+class DQ_Mobilenet(nn.Module):
+    def __init__(self):
+        super().__init__()
+        mobilenet = models.mobilenet_v3_large(pretrained=True)
+        self.features = nn.ModuleList(mobilenet.children())[:-1]
+        self.features = nn.Sequential(*self.features)
+        self.classifier = nn.ModuleList(mobilenet.classifier.children())[:-1]
+        self.classifier = nn.Sequential(*self.classifier)
+        self.in_features = 960
+        self.fc_res = nn.Linear(1280, 3)
+    
+    def forward(self, x):
+        x = x.view(-1, 3, 224, 224)
+        x = self.features(x)
+        flattened_res = torch.reshape(x, (-1, self.in_features))
+        x = self.classifier(flattened_res)
+        x = self.fc_res(x)
+        return x
+    
+    def save(self, file_name='model.pth', model_folder_path='./model_mobilenet'):
         os.makedirs(model_folder_path, exist_ok=True)
         file_name = os.path.join(model_folder_path, file_name)
         torch.save(self.state_dict(), file_name)
 
 
-class QTrainer:
-    def __init__(self, model, lr, gamma, device):
-        super(QTrainer, self). __init__()
-        self.lr = lr
-        self.gamma = gamma
-        self.model = model
-        self.optimizer = optim.Adam(model.parameters(), lr=self.lr)
-        self.criterion = nn.MSELoss()
-        self.device = device
-        self.model.to(self.device)
-
-    def train_step(self, state, action, reward, next_state, done):
-        state = torch.tensor(state, dtype=torch.float).to(self.device)
-        next_state = torch.tensor(next_state, dtype=torch.float).to(self.device)
-        action = torch.tensor(action, dtype=torch.float).to(self.device)
-        reward = torch.tensor(reward, dtype=torch.float).to(self.device)
-        # (n, x)
-        if state.shape[0] == 1:
-            # (1, x) if short training
-            state = torch.unsqueeze(state, 0)
-            next_state = torch.unsqueeze(next_state, 0)
-            action = torch.unsqueeze(action, 0)
-            reward = torch.unsqueeze(reward, 0)
-            done = (done, )
-
-        # 1: predicted Q values with current state
-        pred = self.model(state)
-        # 2: Q_new = r + y * max(next_predicted Q value) -> only do this if not done
-        target = pred.clone()
-        for idx in range(len(done)):
-            Q_new = reward[idx]
-            if not done[idx]:
-                Q_new = reward[idx] + self.gamma * torch.max(self.model(next_state[idx]))
-            target[idx][torch.argmax(action[idx]).item()] = Q_new
-
-        self.optimizer.zero_grad()
-        loss = self.criterion(target, pred)
-        loss.backward()
-        self.optimizer.step()
-        return loss.item()
+class DQ_Mnasnet(nn.Module):
+    def __init__(self):
+        super().__init__()
+        mnasnet = models.mnasnet1_0(pretrained=True)
+        self.features = nn.ModuleList(mnasnet.children())[:-1]
+        self.features = nn.Sequential(*self.features)
+        self.in_features = 1280
+        self.fc_res = nn.Linear(self.in_features, 3)
+        self.classifier = nn.Sequential(mnasnet.classifier[0], self.fc_res)
+    
+    def forward(self, x):
+        x = x.view(-1, 3, 224, 224)
+        x = self.features(x)
+        # Equivalent to global avgpool and removing H and W dimensions.
+        x = x.mean([2, 3])
+        flattened_res = torch.reshape(x, (-1, self.in_features))
+        x = self.classifier(flattened_res)
+        return x
+    
+    def save(self, file_name='model.pth', model_folder_path='./model_mnasnet'):
+        os.makedirs(model_folder_path, exist_ok=True)
+        file_name = os.path.join(model_folder_path, file_name)
+        torch.save(self.state_dict(), file_name)

@@ -7,7 +7,8 @@ import cv2
 import torch
 from collections import deque
 from game.doodlejump import DoodleJump
-from model import Deep_QNet, Deep_RQNet, QTrainer
+from model.networks import Deep_QNet, Deep_RQNet, DQ_Resnet18, DQ_Mobilenet, DQ_Mnasnet
+from model.trainer import QTrainer
 from helper import write_model_params
 from torch.utils.tensorboard import SummaryWriter
 
@@ -30,6 +31,7 @@ class Agent:
         self.store_frames = args.store_frames
         self.image_h = args.height
         self.image_w = args.width
+        self.image_c = args.channels
         self.memory = deque(maxlen=args.max_memory)
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.gamma = args.gamma
@@ -39,13 +41,26 @@ class Agent:
             self.model = Deep_QNet()
         elif args.model=="drqn":
             self.model = Deep_RQNet()
+        elif args.model=='resnet':
+            self.model = DQ_Resnet18()
+        elif args.model=='mobilenet':
+            self.model = DQ_Mobilenet()
+        elif args.model=='mnasnet':
+            self.model = DQ_Mnasnet()
+
         if args.model_path or args.test:
             self.model.load_state_dict(torch.load(args.model_path))
         self.trainer = QTrainer(model=self.model, lr=self.lr, gamma=self.gamma, device=self.device)
 
     def get_state(self, game):
         state = game.getCurrentFrame()
-        img = cv2.cvtColor(cv2.resize(state, (self.image_w, self.image_h)), cv2.COLOR_BGR2GRAY)
+        
+        img = cv2.resize(state, (self.image_w, self.image_h))
+        if self.image_c == 1:
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        else:
+            img = img[:, :, ::-1]
+
         M = cv2.getRotationMatrix2D((self.image_w / 2, self.image_h / 2), 270, 1.0)
         img = cv2.warpAffine(img, M, (self.image_h, self.image_w))
 
@@ -53,8 +68,14 @@ class Agent:
             os.makedirs("./image_dump", exist_ok=True)
             cv2.imwrite("./image_dump/"+str(self.ctr)+".jpg", img)
             self.ctr+=1
-        state = np.expand_dims(img, axis=0)
-        return state
+            
+        if self.image_c == 1:
+            img = np.expand_dims(img, axis=0)
+        else:
+            img = img.transpose((2, 0, 1))
+            img = np.expand_dims(img, axis=0)
+            
+        return img
 
     def remember(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done)) # popleft if MAX_MEMORY is reached
@@ -92,14 +113,13 @@ class Agent:
 def train(game, args, writer):
     if args.macos:
         os.environ['KMP_DUPLICATE_LIB_OK']='True'
-
     sum_rewards = 0
     sum_short_loss = 0
     total_score = 0
     record = 0
     loop_ctr = 0
     agent = Agent(args)
-    dummy_input = torch.randn(1, 1, args.height, args.width).to(agent.device)
+    dummy_input = torch.rand(1, args.channels, args.height, args.width).to(agent.device)
     writer.add_graph(agent.model, dummy_input)
     print("Now playing")
 
@@ -113,6 +133,7 @@ def train(game, args, writer):
 
         # perform move and get new state
         reward, done, score = game.playStep(final_move)
+
         state_new = agent.get_state(game)
         sum_rewards += reward
         writer.add_scalar('Reward/curr_reward', reward, loop_ctr)
@@ -161,7 +182,6 @@ def train(game, args, writer):
 def test(game, args):
     if args.macos:
         os.environ['KMP_DUPLICATE_LIB_OK']='True'
-    
     record = 0
     agent = Agent(args)
     print("Now playing")
@@ -184,7 +204,7 @@ if __name__ == "__main__":
     parser.add_argument("--human", action="store_true", help="playing the game manually without agent")
     parser.add_argument("--test", action="store_true", help="playing the game with a trained agent")
     parser.add_argument("-d", "--difficulty", type=str, default="EASY", choices=["EASY", "MEDIUM", "HARD"], help="select difficulty of the game")
-    parser.add_argument("-m", "--model", type=str, default="dqn", choices=["dqn", "drqn"], help="select model to train the agent")
+    parser.add_argument("-m", "--model", type=str, default="dqn", choices=["dqn", "drqn", "resnet", "mobilenet", "mnasnet"], help="select model to train the agent")
     parser.add_argument("-p", "--model_path", type=str, help="path to weights of an earlier trained model")
     parser.add_argument("-lr", "--learning_rate", type=float, default=0.001, help="set learning rate for training the model")
     parser.add_argument("-g", "--gamma", type=float, default=0.9, help="set discount factor for q learning")
@@ -193,6 +213,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=1000, help="Batch size for long training")
     parser.add_argument("--reward_type", type=int, default=1, choices=[1, 2, 3, 4], help="types of rewards formulation")
     parser.add_argument("--exploration", type=int, default=40, help="number of games to explore")
+    parser.add_argument("--channels", type=int, default=1, help="set the image channels for preprocessing")
     parser.add_argument("--height", type=int, default=80, help="set the image height post resize")
     parser.add_argument("--width", type=int, default=80, help="set the image width post resize")
     parser.add_argument("--server", action="store_true", help="when training on server add this flag")
