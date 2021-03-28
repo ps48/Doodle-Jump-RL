@@ -171,8 +171,12 @@ def train(game, args, writer):
 
             if score > record:
                 record = score
-                # agent.model.save()
-                agent.model.save(model_folder_path="./model"+hyper_params+dstr)
+                # save the best model yet
+                agent.model.save(file_name="model_best.pth", model_folder_path="./model"+hyper_params+dstr)
+            
+            if agent.n_games%100 == 0:
+                # save model per 100 games
+                agent.model.save(file_name="model_"+str(agent.n_games)+".pth", model_folder_path="./model"+hyper_params+dstr)
 
             print('Game', agent.n_games, 'Score', score, 'Record:', record)
             writer.add_scalar('Score/High_Score', record, agent.n_games)
