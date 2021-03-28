@@ -79,8 +79,8 @@ class DQ_Resnet18(nn.Module):
     def __init__(self):
         super().__init__()
         resnet18 = models.resnet18(pretrained=True)
-        self.features = nn.ModuleList(resnet18.children())[:-1]
-        self.features = nn.Sequential(*self.features)
+        features = nn.ModuleList(resnet18.children())[:-1]
+        self.features = nn.Sequential(*features)
         self.in_features = resnet18.fc.in_features
         self.fc_res = nn.Linear(self.in_features, 3)
     
@@ -95,16 +95,17 @@ class DQ_Resnet18(nn.Module):
         os.makedirs(model_folder_path, exist_ok=True)
         file_name = os.path.join(model_folder_path, file_name)
         torch.save(self.state_dict(), file_name)
+
         
 
 class DQ_Mobilenet(nn.Module):
     def __init__(self):
         super().__init__()
         mobilenet = models.mobilenet_v3_large(pretrained=True)
-        self.features = nn.ModuleList(mobilenet.children())[:-1]
-        self.features = nn.Sequential(*self.features)
-        self.classifier = nn.ModuleList(mobilenet.classifier.children())[:-1]
-        self.classifier = nn.Sequential(*self.classifier)
+        features = nn.ModuleList(mobilenet.children())[:-1]
+        self.features = nn.Sequential(*features)
+        classifier = nn.ModuleList(mobilenet.classifier.children())[:-1]
+        self.classifier = nn.Sequential(*classifier)
         self.in_features = 960
         self.fc_res = nn.Linear(1280, 3)
     
@@ -126,8 +127,8 @@ class DQ_Mnasnet(nn.Module):
     def __init__(self):
         super().__init__()
         mnasnet = models.mnasnet1_0(pretrained=True)
-        self.features = nn.ModuleList(mnasnet.children())[:-1]
-        self.features = nn.Sequential(*self.features)
+        features = nn.ModuleList(mnasnet.children())[:-1]
+        self.features = nn.Sequential(*features)
         self.in_features = 1280
         self.fc_res = nn.Linear(self.in_features, 3)
         self.classifier = nn.Sequential(mnasnet.classifier[0], self.fc_res)

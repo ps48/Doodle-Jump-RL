@@ -113,7 +113,8 @@ class Agent:
         else:
             state0 = torch.tensor(state, dtype=torch.float).to(self.device)
             self.model.eval()
-            prediction = self.model(state0)
+            with torch.no_grad():
+                prediction = self.model(state0)
             move = torch.argmax(prediction).item()
             final_move[move] = 1
 
@@ -170,8 +171,12 @@ def train(game, args, writer):
 
             if score > record:
                 record = score
-                # agent.model.save()
-                agent.model.save(model_folder_path="./model"+hyper_params+dstr)
+                # save the best model yet
+                agent.model.save(file_name="model_best.pth", model_folder_path="./model"+hyper_params+dstr)
+            
+            if agent.n_games%100 == 0:
+                # save model per 100 games
+                agent.model.save(file_name="model_"+str(agent.n_games)+".pth", model_folder_path="./model"+hyper_params+dstr)
 
             print('Game', agent.n_games, 'Score', score, 'Record:', record)
             writer.add_scalar('Score/High_Score', record, agent.n_games)
@@ -188,6 +193,7 @@ def train(game, args, writer):
                                      'high_score': record,
                                      'mean_score': mean_score
                                      })
+
 
 def test(game, args):
     if args.macos:
