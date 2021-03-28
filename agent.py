@@ -113,7 +113,8 @@ class Agent:
         else:
             state0 = torch.tensor(state, dtype=torch.float).to(self.device)
             self.model.eval()
-            prediction = self.model(state0)
+            with torch.no_grad():
+                prediction = self.model(state0)
             move = torch.argmax(prediction).item()
             final_move[move] = 1
 
@@ -188,6 +189,7 @@ def train(game, args, writer):
                                      'high_score': record,
                                      'mean_score': mean_score
                                      })
+
 
 def test(game, args):
     if args.macos:
