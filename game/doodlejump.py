@@ -46,8 +46,7 @@ class DoodleJump:
         self.direction = 0
         self.playerx = 400
         self.playery = 450
-        self.platforms = [[400, 500, 0, 0], [400, 400, 0, 0], [400, 300, 0, 0], [400, 200, 0, 0],
-                            [400, 100, 0, 0], [400, 0, 0, 0], [400, -100, 0, 0], [400, -200, 0, 0]]
+        self.platforms = [[400, 500, 0, 0]]
         self.springs = []
         self.monsters =[]
         self.cameray = 0
@@ -138,43 +137,18 @@ class DoodleJump:
             # print("platform, ",(self.platforms))
             check = self.platforms[0][1] - self.cameray
             if check > 800:
-                platform1 = random.randint(0, 1000)
-                if platform1 < 800:
-                    platform1 = 0
-                elif platform1 < 900:
-                    platform1 = 1
-                else:
-                    platform1 = 2
-
-                x1 = random.randint(0, 700)
-                self.platforms.append([x1, self.platforms[-1][1] - self.inter_platform_distance, platform1, 0])
-
-                platform2 = random.randint(0, 1000)
-                if platform2 < 800:
-                    platform2 = 0
-                elif platform2 < 900:
-                    platform2 = 1
-                else:
-                    platform2 = 2
-                x2 = x1
-                while abs(x1 - x2) < 200:
-                    x2 = random.randint(0, 700)
-                self.platforms.append([x2, self.platforms[-2][1] - self.inter_platform_distance, platform2, 0])
-
+                x1 = random.randint(0,700)
+                platform1 = self.getNewPlatform(x1, self.platforms[-1][1] - self.inter_platform_distance)
+                self.platforms.append(platform1)
+                
                 second_platform_prob = random.randint(0, 1000)
                 if second_platform_prob <= self.second_platform_prob:
-                    platform2 = random.randint(0, 1000)
-                    if platform2 < 800:
-                        platform2 = 0
-                    elif platform2 < 900:
-                        platform2 = 1
-                    else:
-                        platform2 = 2
                     x2 = x1
                     while abs(x1 - x2) < 200:
                         x2 = random.randint(0, 700)
-                    self.platforms.append([x2, self.platforms[-2][1] - self.inter_platform_distance, platform2, 0])
-
+                    platform2 = self.getNewPlatform(x2, self.platforms[-2][1] - self.inter_platform_distance)
+                    self.platforms.append(platform2)
+                    
                 coords = self.platforms[-1]
                 check = random.randint(0, 1000)
 
@@ -185,6 +159,8 @@ class DoodleJump:
                     self.monsters.append([coords[0], coords[1]- 50, 0])
 
                 first_platform_popped = self.platforms.pop(0)
+                if self.platforms[0][1] == first_platform_popped[1]: # popping second platform on same level
+                    self.platforms.pop(0)
 
                 self.score += 100
                 score_increment = True
@@ -218,33 +194,41 @@ class DoodleJump:
 
         return score_increment, spring_touch, monster_touch
 
+    def getNewPlatform(self, x, on):
+        if self.score < 8_000:
+            return [x, on, 0, 0]
+        elif 8_000 <= self.score < 16_000:
+            platform = random.randint(0, 1000)
+            if platform < 800:
+                platform = 0
+            else:
+                platform = 1
+            return [x, on, platform, 0]
+        else:
+            platform = random.randint(0, 1000)
+            if platform < 800:
+                platform = 0
+            elif platform < 900:
+                platform = 1
+            else:
+                platform = 2
+            return [x, on, platform, 0]
+
     def generatePlatforms(self):
         on = 800
         while on > -100:
             x1 = random.randint(0,700)
-            platform1 = random.randint(0, 1000)
-            if platform1 < 800:
-                platform1 = 0
-            elif platform1 < 900:
-                platform1 = 1
-            else:
-                platform1 = 2
-            self.platforms.append([x1, on, platform1, 0])
-
+            platform1 = self.getNewPlatform(x1, on)
+            self.platforms.append(platform1)
+            
             second_platform_prob = random.randint(0, 1000)
             if second_platform_prob <= self.second_platform_prob:
                 x2 = x1
                 while abs(x1 - x2) < 200:
                     x2 = random.randint(0, 700)
-                platform2 = random.randint(0, 1000)
-                if platform2 < 800:
-                    platform2 = 0
-                elif platform2 < 900:
-                    platform2 = 1
-                else:
-                    platform2 = 2
-                self.platforms.append([x2, on, platform2, 0])
-
+                platform2 = self.getNewPlatform(x2, on)
+                self.platforms.append(platform2)
+                
             on -= self.inter_platform_distance
 
     def drawGrid(self):
@@ -383,8 +367,7 @@ class DoodleJump:
         self.die = 0
         self.springs = []
         self.monsters =[]
-        self.platforms = [[400, 500, 0, 0], [400, 400, 0, 0], [400, 300, 0, 0], [400, 200, 0, 0],
-                            [400, 100, 0, 0], [400, 0, 0, 0], [400, -100, 0, 0], [400, -200, 0, 0]]
+        self.platforms = [[400, 500, 0, 0]]
         self.generatePlatforms()
         self.playerx = 400
         self.playery = 400
