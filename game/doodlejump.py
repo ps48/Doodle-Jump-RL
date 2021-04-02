@@ -195,11 +195,11 @@ class DoodleJump:
         return score_increment, spring_touch, monster_touch
 
     def getNewPlatform(self, x, on):
-        if self.score < 8_000:
+        if self.score < 10_000:
             return [x, on, 0, 0]
-        elif 8_000 <= self.score < 16_000:
+        elif 10_000 <= self.score < 25_000:
             platform = random.randint(0, 1000)
-            if platform < 800:
+            if platform < 850:
                 platform = 0
             else:
                 platform = 1
