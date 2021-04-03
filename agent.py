@@ -16,7 +16,7 @@ from torch.utils.tensorboard import SummaryWriter
 class Agent:
     def __init__(self, args):
         self.n_games = 0
-        self.epsilon = 0
+        # self.epsilon = 0
         self.ctr = 1
         seed = args.seed
         self.exploration = args.exploration
@@ -37,6 +37,15 @@ class Agent:
         self.gamma = args.gamma
         self.batch_size = args.batch_size
         self.lr = args.learning_rate
+        self.steps = 0
+        self.exploration_type = args.explore
+        self.decay_factor = args.decay_factor
+        self.epsilon = args.epsilon
+        self.eulers_constant = 2.71828
+        
+        if args.explore == "epsilon_g_decay_exp":
+            self.epsilon = 1
+            
         if args.model=="dqn":
             self.model = Deep_QNet()
         elif args.model=="drqn":
@@ -102,12 +111,29 @@ class Agent:
     def train_short_memory(self, state, action, reward, next_state, done):
         self.model.train()
         return self.trainer.train_step(state, action, reward, next_state, done)
-
+    
+    def should_explore(self, test_mode):
+        self.steps += 1
+        r = random.random()
+        if test_mode:
+            return False
+        if self.exploration_type == "epsilon_g":
+            pass
+        elif self.exploration_type == "epsilon_g_decay_exp":
+            self.epsilon = self.epsilon * pow((1.0 - self.decay_factor), self.steps)
+        elif self.exploration_type == "epsilon_g_decay_exp_cur":
+            self.epsilon = self.decay_factor * pow(self.eulers_constant, -self.steps)
+    
+        if r > self.epsilon:
+                return True
+        return False
+        
     def get_action(self, state, test_mode=False):
         # random moves: tradeoff exploration / exploitation
-        self.epsilon = self.exploration - self.n_games
-        final_move = [0,0,0]
-        if random.randint(0, 200) < self.epsilon and not test_mode:
+        # self.epsilon = self.exploration - self.n_games
+        final_move = [0,0,0]  
+        # if random.randint(0, 200) < self.epsilon and not test_mode:
+        if self.should_explore(test_mode):
             move = random.randint(0, 2)
             final_move[move] = 1
         else:
@@ -235,6 +261,9 @@ if __name__ == "__main__":
     parser.add_argument("--server", action="store_true", help="when training on server add this flag")
     parser.add_argument("--seed", type=int, default=42, help="change seed value for creating game randomness")
     parser.add_argument("--max_games", type=int, default=1000, help="set the max number of games to be played by the agent")
+    parser.add_argument("--explore", type=str, default="epsilon_g", choices=["epsilon_g","epsilon_g_decay_exp","epsilon_g_decay_exp_cur"], help="select the exploration vs exploitation tradeoff")
+    parser.add_argument("--decay_factor", type=float, default=0.9, help="set the decay factor for exploration")
+    parser.add_argument("--epsilon", type=float, default=0.8, help="set the epsilon value for exploration")
     args = parser.parse_args()
     
     game = DoodleJump(difficulty=args.difficulty, server=args.server, reward_type=args.reward_type)
