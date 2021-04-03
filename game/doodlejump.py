@@ -155,7 +155,7 @@ class DoodleJump:
                 if check > 900 and coords[2] == 0:
                     self.springs.append([coords[0], coords[1] - 25, 0])
 
-                elif check>860 and coords[2] == 0:
+                elif check>860 and coords[2] == 0 and self.score > 25_000: # monsters after 25k score
                     self.monsters.append([coords[0], coords[1]- 50, 0])
 
                 first_platform_popped = self.platforms.pop(0)
