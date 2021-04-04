@@ -4,6 +4,7 @@ import torch.nn as nn
 import cv2
 import random
 import os
+import datetime
 import argparse
 from torch.nn import functional as F
 from torch.utils.tensorboard import SummaryWriter
@@ -51,7 +52,7 @@ class Runner():
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.gamma = args.gamma
         self.batch_size = args.batch_size
-        self.lr = args.learning_rate
+        self.record = 0
 
         # if args.model_path or args.test:
         #     self.model.load_state_dict(torch.load(args.model_path))
@@ -98,17 +99,17 @@ class Runner():
 
     def run(self, max_steps, memory=None):
         if not memory: memory = []
-        
         for _ in range(max_steps):
             if self.done: self.reset()
             state_old = self.get_state()
-            dists = actor(t(state_old))
-            actions = dists.sample().detach().data.numpy()
+            dists = actor(t(state_old).to(self.device))
+            actions = dists.sample().detach().cpu().data.numpy()
             actions_clipped = np.clip(actions, -1, 1) #self.env.action_space.low.min(), env.action_space.high.max())
             
             final_move = [0,0,0]
             final_move[np.argmax(actions_clipped)] = 1
             reward, self.done, score = self.game.playStep(final_move)
+            
             next_state = self.get_state()
             memory.append((actions, reward, self.state, next_state, self.done))
 
@@ -117,10 +118,24 @@ class Runner():
             self.episode_reward += reward
             
             if self.done:
+                self.n_games += 1
                 self.episode_rewards.append(self.episode_reward)
                 if len(self.episode_rewards) % 10 == 0:
                     print("episode:", len(self.episode_rewards), ", episode reward:", self.episode_reward)
                 writer.add_scalar("episode_reward", self.episode_reward, global_step=self.steps)
+
+                if score > self.record:
+                    self.record = score
+                    # save the best model yet
+                    actor.save(file_name="actor_model_best.pth", model_folder_path="./model"+hyper_params+dstr)
+                    critic.save(file_name="critic_model_best.pth", model_folder_path="./model"+hyper_params+dstr)
+                
+                if self.n_games%100 == 0:
+                    # save model per 100 games
+                    actor.save(file_name="actor_model_"+str(self.n_games)+".pth", model_folder_path="./model"+hyper_params+dstr)
+                    critic.save(file_name="critic_model_"+str(self.n_games)+".pth", model_folder_path="./model"+hyper_params+dstr)
+
+                print('Game', self.n_games, 'Score', score, 'Record:', self.record)
                     
         
         return memory
@@ -131,9 +146,10 @@ if __name__ == '__main__':
     parser.add_argument("--human", action="store_true", help="playing the game manually without agent")
     parser.add_argument("--test", action="store_true", help="playing the game with a trained agent")
     parser.add_argument("-d", "--difficulty", type=str, default="EASY", choices=["EASY", "MEDIUM", "HARD"], help="select difficulty of the game")
-    parser.add_argument("-m", "--model", type=str, default="dqn", choices=["dqn", "drqn", "resnet", "mobilenet", "mnasnet"], help="select model to train the agent")
+    parser.add_argument("-m", "--model", type=str, default="a2c", choices=["a2c"], help="select model to train the agent")
     parser.add_argument("-p", "--model_path", type=str, help="path to weights of an earlier trained model")
-    parser.add_argument("-lr", "--learning_rate", type=float, default=0.001, help="set learning rate for training the model")
+    parser.add_argument("-alr", "--actor_lr", type=float, default=4e-4, help="set learning rate for training the model")
+    parser.add_argument("-clr", "--critic_lr", type=float, default=4e-3, help="set learning rate for training the model")
     parser.add_argument("-g", "--gamma", type=float, default=0.9, help="set discount factor for q learning")
     parser.add_argument("--max_memory", type=int, default=10000, help="Buffer memory size for long training")
     parser.add_argument("--store_frames", action="store_true", help="store frames encountered during game play by agent")
@@ -151,22 +167,25 @@ if __name__ == '__main__':
     game = DoodleJump(difficulty=args.difficulty, server=args.server, reward_type=args.reward_type)
     agent = Runner(game)
     # env = gym.make("Pendulum-v0")
-    writer = SummaryWriter(log_dir="modelruns/mish_activation")
+    hyper_params = "_d_"+args.difficulty+"_m_"+args.model+"_alr_"+str(args.actor_lr)+"_clr_"+str(args.critic_lr)+"_g_"+str(args.gamma)+"_mem_"+str(args.max_memory)+"_batch_"+str(args.batch_size)
+    dstr = datetime.datetime.now().strftime("_dt-%Y-%m-%d-%H-%M-%S")
+    writer = SummaryWriter(log_dir="./model"+hyper_params+dstr)
 
     # config
-    state_dim = agent.get_state() #env.observation_space.shape[0]
+    state = agent.get_state() #env.observation_space.shape[0]
     n_actions = 3 #env.action_space.shape[0]
-    actor = Actor(state_dim.shape[0], n_actions, activation=Mish)
-    critic = Critic(state_dim.shape[0], activation=Mish)
+    actor = Actor(state.shape[0], n_actions, activation=Mish).to(agent.device)
+    critic = Critic(state.shape[0], activation=Mish).to(agent.device)
 
-    learner = A2CLearner(actor, critic)
+    learner = A2CLearner(actor, critic, agent.device, gamma=args.gamma, entropy_beta=0,
+                 actor_lr=args.actor_lr, critic_lr=args.critic_lr, max_grad_norm=0.5)
     # runner = Runner(env)
     ###########
     steps_on_memory = 16
     episodes = 500
     episode_length = 200
     total_steps = (episode_length*episodes)//steps_on_memory
-
+    record = 0
     for i in range(total_steps):
         memory = agent.run(steps_on_memory)
         learner.learn(memory, agent.steps, writer, discount_rewards=False)

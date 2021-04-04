@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import os
 from torch import nn
 from torch.nn import functional as F
 import matplotlib.pyplot as plt
@@ -48,6 +49,11 @@ class Actor(nn.Module):
         
         return torch.distributions.Normal(means, stds)
 
+    def save(self, file_name='model.pth', model_folder_path='./model_actor'):
+        os.makedirs(model_folder_path, exist_ok=True)
+        file_name = os.path.join(model_folder_path, file_name)
+        torch.save(self.state_dict(), file_name)
+
 
 ## Critic module
 class Critic(nn.Module):
@@ -80,6 +86,11 @@ class Critic(nn.Module):
         flattened_res = self.fc1(flattened_res)
         return self.model(flattened_res)
 
+    def save(self, file_name='model.pth', model_folder_path='./model_critic'):
+        os.makedirs(model_folder_path, exist_ok=True)
+        file_name = os.path.join(model_folder_path, file_name)
+        torch.save(self.state_dict(), file_name)
+
 ###########
 
 def discounted_rewards(rewards, dones, gamma):
@@ -93,7 +104,7 @@ def discounted_rewards(rewards, dones, gamma):
 
 ###########
 
-def process_memory(memory, gamma=0.99, discount_rewards=True):
+def process_memory(memory, device, gamma=0.99, discount_rewards=True):
     actions = []
     states = []
     next_states = []
@@ -117,11 +128,11 @@ def process_memory(memory, gamma=0.99, discount_rewards=True):
         # else:
         rewards = discounted_rewards(rewards, dones, gamma)
 
-    actions = t(actions)
-    states = t(states)
-    next_states = t(next_states)
-    rewards = t(rewards).view(-1, 1)
-    dones = t(dones).view(-1, 1)
+    actions = t(actions).to(device)
+    states = t(states).to(device)
+    next_states = t(next_states).to(device)
+    rewards = t(rewards).view(-1, 1).to(device)
+    dones = t(dones).view(-1, 1).to(device)
     return actions, rewards, states, next_states, dones
 
 def clip_grad_norm_(module, max_grad_norm):
@@ -130,7 +141,7 @@ def clip_grad_norm_(module, max_grad_norm):
 ###########
 
 class A2CLearner():
-    def __init__(self, actor, critic, gamma=0.9, entropy_beta=0,
+    def __init__(self, actor, critic, device, gamma=0.9, entropy_beta=0,
                  actor_lr=4e-4, critic_lr=4e-3, max_grad_norm=0.5):
         self.gamma = gamma
         self.max_grad_norm = max_grad_norm
@@ -139,9 +150,10 @@ class A2CLearner():
         self.entropy_beta = entropy_beta
         self.actor_optim = torch.optim.Adam(actor.parameters(), lr=actor_lr)
         self.critic_optim = torch.optim.Adam(critic.parameters(), lr=critic_lr)
+        self.device = device
     
     def learn(self, memory, steps, writer, discount_rewards=True):
-        actions, rewards, states, next_states, dones = process_memory(memory, self.gamma, discount_rewards)
+        actions, rewards, states, next_states, dones = process_memory(memory, self.device, self.gamma, discount_rewards)
 
         if discount_rewards:
             td_target = rewards
