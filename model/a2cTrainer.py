@@ -27,6 +27,7 @@ def process_memory(memory, batch_size, device, gamma, discount_rewards=True):
     next_states = []
     rewards = []
     dones = []
+    mini_sample = []
     if len(memory)>batch_size:
         mini_sample = random.sample(memory, batch_size) # list of tuples
     else:
