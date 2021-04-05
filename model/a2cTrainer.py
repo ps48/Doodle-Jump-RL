@@ -5,6 +5,11 @@ from torch import nn
 from torch.nn import functional as F
 from torch.utils.tensorboard import SummaryWriter
 
+
+def t(x):
+    x = np.array(x) if not isinstance(x, np.ndarray) else x
+    return torch.from_numpy(x).float()
+
 def discounted_rewards(rewards, dones, gamma):
     ret = 0
     discounted = []
