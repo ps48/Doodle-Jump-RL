@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import os
+import random
 from torch import nn
 from torch.nn import functional as F
 from torch.utils.tensorboard import SummaryWriter
@@ -20,13 +21,17 @@ def discounted_rewards(rewards, dones, gamma):
     return discounted[::-1]
 
 
-def process_memory(memory, device, gamma=0.99, discount_rewards=True):
+def process_memory(memory, batch_size, device, gamma, discount_rewards=True):
     actions = []
     states = []
     next_states = []
     rewards = []
     dones = []
-    for action, reward, state, next_state, done in memory:
+    if len(memory)>batch_size:
+        mini_sample = random.sample(memory, batch_size) # list of tuples
+    else:
+        mini_sample = memory
+    for action, reward, state, next_state, done in mini_sample:
         if action is not None:
             actions.append(action)
         else:
@@ -70,7 +75,7 @@ def clip_grad_norm_(module, max_grad_norm):
 
 class A2CLearner():
     def __init__(self, actor, critic, device, gamma=0.9, entropy_beta=0,
-                 actor_lr=4e-4, critic_lr=4e-3, max_grad_norm=0.5):
+                 actor_lr=4e-4, critic_lr=4e-3, max_grad_norm=0.5, batch_size = 1000):
         self.gamma = gamma
         self.max_grad_norm = max_grad_norm
         self.actor = actor
@@ -79,9 +84,10 @@ class A2CLearner():
         self.actor_optim = torch.optim.Adam(actor.parameters(), lr=actor_lr)
         self.critic_optim = torch.optim.Adam(critic.parameters(), lr=critic_lr)
         self.device = device
+        self.batch_size = batch_size
 
     def learn(self, memory, steps, writer, discount_rewards=True):
-        actions, rewards, states, next_states, dones = process_memory(memory, self.device, self.gamma, discount_rewards)
+        actions, rewards, states, next_states, dones = process_memory(memory, self.batch_size, self.device, self.gamma, discount_rewards)
 
         if discount_rewards:
             td_target = rewards

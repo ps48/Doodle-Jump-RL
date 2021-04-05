@@ -193,7 +193,7 @@ if __name__ == '__main__':
     critic = Critic(state.shape[0], activation=Mish).to(agent.device)
 
     learner = A2CLearner(actor, critic, agent.device, gamma=args.gamma, entropy_beta=0,
-                 actor_lr=args.actor_lr, critic_lr=args.critic_lr, max_grad_norm=0.5)
+                 actor_lr=args.actor_lr, critic_lr=args.critic_lr, max_grad_norm=0.5, batch_size = args.batch_size)
     # runner = Runner(env)
     ###########
     steps_on_memory = 16
@@ -201,11 +201,12 @@ if __name__ == '__main__':
     episode_length = 200
     total_steps = (episode_length*episodes)//steps_on_memory
     # record = 0
-    for i in range(args.max_games):
+    while agent.n_games != args.max_games:
         memory = agent.run(steps_on_memory)
-        writer.add_hparams(hparam_dict=vars(args),
+        learner.learn(memory, agent.steps, writer, discount_rewards=False)
+    
+    writer.add_hparams(hparam_dict=vars(args),
                            metric_dict={'mean_reward': agent.mean_reward,
                                         'high_score': agent.record,
                                         'mean_score': agent.mean_score
                                         })
-        learner.learn(memory, agent.steps, writer, discount_rewards=False)
