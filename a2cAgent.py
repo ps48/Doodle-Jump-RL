@@ -30,6 +30,8 @@ class Runner():
         self.done = True
         self.steps = 0
         self.episode_reward = 0
+        self.mean_reward = 0
+        self.mean_score = 0
         self.episode_rewards = []
 
         ''''''
@@ -101,7 +103,8 @@ class Runner():
     def run(self, max_steps, memory=None):
         total_score = 0
         loop_ctr = 0
-        if not memory: memory = []
+        if not memory or len(memory) > args.max_memory:
+            memory = []
         for _ in range(max_steps):
             if self.done: self.reset()
             state_old = self.get_state()
@@ -119,8 +122,9 @@ class Runner():
             self.state = next_state
             self.steps += 1
             self.episode_reward += reward
+            self.mean_reward = self.episode_reward/self.steps
 
-            writer.add_scalar("Reward/mean_reward", (self.episode_reward / self.steps), global_step=self.steps)
+            writer.add_scalar("Reward/mean_reward", self.mean_reward, global_step=self.steps)
             
             if self.done:
                 self.n_games += 1
@@ -144,8 +148,8 @@ class Runner():
                 writer.add_scalar('Score/High_Score', self.record, self.n_games)
 
                 total_score += score
-                mean_score = total_score / agent.n_games
-                writer.add_scalar('Score/Mean_Score', mean_score, self.n_games)
+                self.mean_score = total_score / agent.n_games
+                writer.add_scalar('Score/Mean_Score', self.mean_score, self.n_games)
 
         return memory
 
@@ -179,6 +183,8 @@ if __name__ == '__main__':
     hyper_params = "_d_"+args.difficulty+"_m_"+args.model+"_alr_"+str(args.actor_lr)+"_clr_"+str(args.critic_lr)+"_g_"+str(args.gamma)+"_mem_"+str(args.max_memory)+"_batch_"+str(args.batch_size)
     dstr = datetime.datetime.now().strftime("_dt-%Y-%m-%d-%H-%M-%S")
     writer = SummaryWriter(log_dir="./model"+hyper_params+dstr)
+    arg_dict = vars(args)
+    writer.add_text('Model Parameters: ', str(arg_dict), 0)
 
     # config
     state = agent.get_state() #env.observation_space.shape[0]
@@ -194,7 +200,12 @@ if __name__ == '__main__':
     episodes = 500
     episode_length = 200
     total_steps = (episode_length*episodes)//steps_on_memory
-    record = 0
-    for i in range(total_steps):
+    # record = 0
+    for i in range(args.max_games):
         memory = agent.run(steps_on_memory)
+        writer.add_hparams(hparam_dict=vars(args),
+                           metric_dict={'mean_reward': agent.mean_reward,
+                                        'high_score': agent.record,
+                                        'mean_score': agent.mean_score
+                                        })
         learner.learn(memory, agent.steps, writer, discount_rewards=False)
