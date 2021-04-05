@@ -146,3 +146,80 @@ class DQ_Mnasnet(nn.Module):
         os.makedirs(model_folder_path, exist_ok=True)
         file_name = os.path.join(model_folder_path, file_name)
         torch.save(self.state_dict(), file_name)
+
+
+class Actor(nn.Module):
+    def __init__(self, state_dim, n_actions, activation=nn.Tanh):
+        super().__init__()
+        self.n_actions = n_actions
+        self.conv1 = nn.Conv2d(1, 32, 8, 4, bias=True, padding=2)
+        self.maxpool1 = nn.MaxPool2d(2, stride=2, ceil_mode=True)
+        self.conv2 = nn.Conv2d(32, 64, 4, 2, bias=True, padding=1)
+        self.maxpool2 = nn.MaxPool2d(2, stride=2, ceil_mode=True)
+        self.conv3 = nn.Conv2d(64, 64, 3, 1, bias=True, padding=1)
+        self.maxpool3 = nn.MaxPool2d(2, stride=2, ceil_mode=True)
+        self.model = nn.Sequential(
+            nn.Linear(256, 64),
+            activation(),
+            nn.Linear(64, 64),
+            activation(),
+            nn.Linear(64, n_actions)
+        )
+
+        logstds_param = nn.Parameter(torch.full((n_actions,), 0.1))
+        self.register_parameter("logstds", logstds_param)
+
+    def forward(self, X):
+        x = X.view(-1, 1, 80, 80)
+        conv1_res = F.relu(self.conv1(x))
+        maxpool1_res = self.maxpool1(conv1_res)
+        conv2_res = F.relu(self.conv2(maxpool1_res))
+        maxpool2_res = self.maxpool2(conv2_res)
+        conv3_res = F.relu(self.conv3(maxpool2_res))
+        maxpool3_res = self.maxpool3(conv3_res)
+        flattened_res = torch.reshape(maxpool3_res, (-1, 256))
+        means = self.model(flattened_res)
+        stds = torch.clamp(self.logstds.exp(), 1e-3, 50)
+
+        return torch.distributions.Normal(means, stds)
+
+    def save(self, file_name='model.pth', model_folder_path='./model_actor'):
+        os.makedirs(model_folder_path, exist_ok=True)
+        file_name = os.path.join(model_folder_path, file_name)
+        torch.save(self.state_dict(), file_name)
+
+
+class Critic(nn.Module):
+    def __init__(self, state_dim, activation=nn.Tanh):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 32, 8, 4, bias=True, padding=2)
+        self.maxpool1 = nn.MaxPool2d(2, stride=2, ceil_mode=True)
+        self.conv2 = nn.Conv2d(32, 64, 4, 2, bias=True, padding=1)
+        self.maxpool2 = nn.MaxPool2d(2, stride=2, ceil_mode=True)
+        self.conv3 = nn.Conv2d(64, 64, 3, 1, bias=True, padding=1)
+        self.maxpool3 = nn.MaxPool2d(2, stride=2, ceil_mode=True)
+        self.fc1 = nn.Linear(256, 64)
+        self.model = nn.Sequential(
+            nn.Linear(64, 64),
+            activation(),
+            nn.Linear(64, 64),
+            activation(),
+            nn.Linear(64, 1),
+        )
+
+    def forward(self, X):
+        x = X.view(-1, 1, 80, 80)
+        conv1_res = F.relu(self.conv1(x))
+        maxpool1_res = self.maxpool1(conv1_res)
+        conv2_res = F.relu(self.conv2(maxpool1_res))
+        maxpool2_res = self.maxpool2(conv2_res)
+        conv3_res = F.relu(self.conv3(maxpool2_res))
+        maxpool3_res = self.maxpool3(conv3_res)
+        flattened_res = torch.reshape(maxpool3_res, (-1, 256))
+        flattened_res = self.fc1(flattened_res)
+        return self.model(flattened_res)
+
+    def save(self, file_name='model.pth', model_folder_path='./model_critic'):
+        os.makedirs(model_folder_path, exist_ok=True)
+        file_name = os.path.join(model_folder_path, file_name)
+        torch.save(self.state_dict(), file_name)

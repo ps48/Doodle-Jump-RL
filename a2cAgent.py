@@ -8,8 +8,9 @@ import datetime
 import argparse
 from torch.nn import functional as F
 from torch.utils.tensorboard import SummaryWriter
-from actor_critic import Actor, Critic, A2CLearner
 from game.doodlejump import DoodleJump
+from model.networks import Actor, Critic
+from model.a2cTrainer import A2CLearner
 
 def mish(input):
     return input * torch.tanh(F.softplus(input))
@@ -98,6 +99,8 @@ class Runner():
 
 
     def run(self, max_steps, memory=None):
+        total_score = 0
+        loop_ctr = 0
         if not memory: memory = []
         for _ in range(max_steps):
             if self.done: self.reset()
@@ -116,13 +119,15 @@ class Runner():
             self.state = next_state
             self.steps += 1
             self.episode_reward += reward
+
+            writer.add_scalar("Reward/mean_reward", (self.episode_reward / self.steps), global_step=self.steps)
             
             if self.done:
                 self.n_games += 1
                 self.episode_rewards.append(self.episode_reward)
                 if len(self.episode_rewards) % 10 == 0:
                     print("episode:", len(self.episode_rewards), ", episode reward:", self.episode_reward)
-                writer.add_scalar("episode_reward", self.episode_reward, global_step=self.steps)
+                writer.add_scalar("Reward/episode_reward", self.episode_reward, global_step=self.steps)
 
                 if score > self.record:
                     self.record = score
@@ -136,8 +141,12 @@ class Runner():
                     critic.save(file_name="critic_model_"+str(self.n_games)+".pth", model_folder_path="./model"+hyper_params+dstr)
 
                 print('Game', self.n_games, 'Score', score, 'Record:', self.record)
-                    
-        
+                writer.add_scalar('Score/High_Score', self.record, self.n_games)
+
+                total_score += score
+                mean_score = total_score / agent.n_games
+                writer.add_scalar('Score/Mean_Score', mean_score, self.n_games)
+
         return memory
 
 if __name__ == '__main__':
