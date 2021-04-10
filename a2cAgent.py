@@ -33,7 +33,7 @@ class Runner():
         self.mean_reward = 0
         self.mean_score = 0
         self.episode_rewards = []
-
+        self.total_score = 0
         ''''''
         self.n_games = 0
         self.epsilon = 0
@@ -98,7 +98,6 @@ class Runner():
 
 
     def run(self, max_steps, memory=None):
-        total_score = 0
         loop_ctr = 0
         if not memory or len(memory) > args.max_memory:
             memory = []
@@ -145,8 +144,8 @@ class Runner():
                 print('Game', self.n_games, 'Score', score, 'Record:', self.record)
                 writer.add_scalar('Score/High_Score', self.record, self.n_games)
 
-                total_score += score
-                self.mean_score = total_score / agent.n_games
+                self.total_score += score
+                self.mean_score = self.total_score / agent.n_games
                 writer.add_scalar('Score/Mean_Score', self.mean_score, self.n_games)
 
         return memory
