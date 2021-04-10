@@ -75,15 +75,15 @@ def clip_grad_norm_(module, max_grad_norm):
 ###########
 
 class A2CLearner():
-    def __init__(self, actor, critic, device, gamma=0.9, entropy_beta=0,
+    def __init__(self, actorcritic, device, gamma=0.9, entropy_beta=0,
                  actor_lr=4e-4, critic_lr=4e-3, max_grad_norm=0.5, batch_size = 1000):
         self.gamma = gamma
         self.max_grad_norm = max_grad_norm
-        self.actor = actor
-        self.critic = critic
+        self.actorcritic = actorcritic
+        # self.critic = critic
         self.entropy_beta = entropy_beta
-        self.actor_optim = torch.optim.Adam(actor.parameters(), lr=actor_lr)
-        self.critic_optim = torch.optim.Adam(critic.parameters(), lr=critic_lr)
+        self.actorcritic_optim = torch.optim.Adam(actorcritic.parameters(), lr=actor_lr)
+        # self.critic_optim = torch.optim.Adam(critic.parameters(), lr=critic_lr)
         self.device = device
         self.batch_size = batch_size
 
@@ -93,36 +93,45 @@ class A2CLearner():
         if discount_rewards:
             td_target = rewards
         else:
-            td_target = rewards + self.gamma * self.critic(next_states) * (1 - dones)
-        value = self.critic(states)
+            td_target = rewards + self.gamma * self.actorcritic(next_states)[1] * (1 - dones)
+        value = self.actorcritic(states)[1]
         advantage = td_target - value
 
         # actor
-        norm_dists = self.actor(states)
+        norm_dists = self.actorcritic(states)[0]
         logs_probs = norm_dists.log_prob(actions)
         entropy = norm_dists.entropy().mean()
 
         actor_loss = (-logs_probs * advantage.detach()).mean() - entropy * self.entropy_beta
-        self.actor_optim.zero_grad()
-        actor_loss.backward()
+        # self.actor_optim.zero_grad()
+        # actor_loss.backward()
 
-        clip_grad_norm_(self.actor_optim, self.max_grad_norm)
-        writer.add_histogram("gradients/actor",
-                             torch.cat([p.grad.view(-1) for p in self.actor.parameters()]), global_step=steps)
-        writer.add_histogram("parameters/actor",
-                             torch.cat([p.data.view(-1) for p in self.actor.parameters()]), global_step=steps)
-        self.actor_optim.step()
+        # clip_grad_norm_(self.actor_optim, self.max_grad_norm)
+        # writer.add_histogram("gradients/actor",
+        #                      torch.cat([p.grad.view(-1) for p in self.actor.parameters()]), global_step=steps)
+        # writer.add_histogram("parameters/actor",
+        #                      torch.cat([p.data.view(-1) for p in self.actor.parameters()]), global_step=steps)
+
 
         # critic
         critic_loss = F.mse_loss(td_target, value)
-        self.critic_optim.zero_grad()
-        critic_loss.backward()
-        clip_grad_norm_(self.critic_optim, self.max_grad_norm)
-        writer.add_histogram("gradients/critic",
-                             torch.cat([p.grad.view(-1) for p in self.critic.parameters()]), global_step=steps)
-        writer.add_histogram("parameters/critic",
-                             torch.cat([p.data.view(-1) for p in self.critic.parameters()]), global_step=steps)
-        self.critic_optim.step()
+
+        total_loss = actor_loss + critic_loss
+
+        total_loss.backward()
+        self.actorcritic_optim.zero_grad()
+        self.actorcritic_optim.step()
+
+
+        # self.critic_optim.zero_grad()
+        # critic_loss.backward()
+        # clip_grad_norm_(self.critic_optim, self.max_grad_norm)
+
+        # writer.add_histogram("gradients/critic",
+        #                      torch.cat([p.grad.view(-1) for p in self.critic.parameters()]), global_step=steps)
+        # writer.add_histogram("parameters/critic",
+        #                      torch.cat([p.data.view(-1) for p in self.critic.parameters()]), global_step=steps)
+        # self.critic_optim.step()
 
         # reports
         writer.add_scalar("losses/log_probs", -logs_probs.mean(), global_step=steps)

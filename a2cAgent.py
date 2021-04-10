@@ -108,7 +108,7 @@ class Runner():
         for _ in range(max_steps):
             if self.done: self.reset()
             state_old = self.get_state()
-            dists = actor(t(state_old).to(self.device))
+            dists = actorcritic(t(state_old).to(self.device))[0]
             actions = dists.sample().detach().cpu().data.numpy()
             actions_clipped = np.clip(actions, -1, 1) #self.env.action_space.low.min(), env.action_space.high.max())
             
@@ -136,13 +136,13 @@ class Runner():
                 if score > self.record:
                     self.record = score
                     # save the best model yet
-                    actor.save(file_name="actor_model_best.pth", model_folder_path="./model"+hyper_params+dstr)
-                    critic.save(file_name="critic_model_best.pth", model_folder_path="./model"+hyper_params+dstr)
+                    actorcritic.save(file_name="actor_model_best.pth", model_folder_path="./model"+hyper_params+dstr)
+                    # actorcritic.save(file_name="critic_model_best.pth", model_folder_path="./model"+hyper_params+dstr)
                 
                 if self.n_games%100 == 0:
                     # save model per 100 games
-                    actor.save(file_name="actor_model_"+str(self.n_games)+".pth", model_folder_path="./model"+hyper_params+dstr)
-                    critic.save(file_name="critic_model_"+str(self.n_games)+".pth", model_folder_path="./model"+hyper_params+dstr)
+                    actorcritic.save(file_name="actor_model_"+str(self.n_games)+".pth", model_folder_path="./model"+hyper_params+dstr)
+                    # actorcritic.save(file_name="critic_model_"+str(self.n_games)+".pth", model_folder_path="./model"+hyper_params+dstr)
 
                 print('Game', self.n_games, 'Score', score, 'Record:', self.record)
                 writer.add_scalar('Score/High_Score', self.record, self.n_games)
@@ -189,10 +189,10 @@ if __name__ == '__main__':
     # config
     state = agent.get_state() #env.observation_space.shape[0]
     n_actions = 3 #env.action_space.shape[0]
-    actor = Actor(state.shape[0], n_actions, activation=Mish).to(agent.device)
-    critic = Critic(state.shape[0], activation=Mish).to(agent.device)
+    actorcritic = Actor(state.shape[0], n_actions, activation=Mish).to(agent.device)
+    # critic = Critic(state.shape[0], activation=Mish).to(agent.device)
 
-    learner = A2CLearner(actor, critic, agent.device, gamma=args.gamma, entropy_beta=0,
+    learner = A2CLearner(actorcritic, agent.device, gamma=args.gamma, entropy_beta=0,
                  actor_lr=args.actor_lr, critic_lr=args.critic_lr, max_grad_norm=0.5, batch_size = args.batch_size)
     # runner = Runner(env)
     ###########
