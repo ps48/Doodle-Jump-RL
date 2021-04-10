@@ -9,7 +9,7 @@ import argparse
 from torch.nn import functional as F
 from torch.utils.tensorboard import SummaryWriter
 from game.doodlejump import DoodleJump
-from model.networks import Actor, Critic
+from model.networks import ActorCritic
 from model.a2cTrainer import A2CLearner
 
 def mish(input):
@@ -105,7 +105,7 @@ class Runner():
         for _ in range(max_steps):
             if self.done: self.reset()
             state_old = self.get_state()
-            dists = actor(t(state_old).to(self.device))
+            dists = actorcritic(t(state_old).to(self.device))[0]
             actions = dists.sample().detach().cpu().data.numpy()
             actions_clipped = np.clip(actions, -1, 1) #self.env.action_space.low.min(), env.action_space.high.max())
             
@@ -134,13 +134,13 @@ class Runner():
                 if score > self.record:
                     self.record = score
                     # save the best model yet
-                    actor.save(file_name="actor_model_best.pth", model_folder_path="./model"+hyper_params+dstr)
-                    critic.save(file_name="critic_model_best.pth", model_folder_path="./model"+hyper_params+dstr)
+                    actorcritic.save(file_name="a2c_model_best.pth", model_folder_path="./model"+hyper_params+dstr)
+                    # actorcritic.save(file_name="critic_model_best.pth", model_folder_path="./model"+hyper_params+dstr)
                 
                 if self.n_games%100 == 0:
                     # save model per 100 games
-                    actor.save(file_name="actor_model_"+str(self.n_games)+".pth", model_folder_path="./model"+hyper_params+dstr)
-                    critic.save(file_name="critic_model_"+str(self.n_games)+".pth", model_folder_path="./model"+hyper_params+dstr)
+                    actorcritic.save(file_name="a2c_model_"+str(self.n_games)+".pth", model_folder_path="./model"+hyper_params+dstr)
+                    # actorcritic.save(file_name="critic_model_"+str(self.n_games)+".pth", model_folder_path="./model"+hyper_params+dstr)
 
                 print('Game', self.n_games, 'Score', score, 'Record:', self.record)
                 writer.add_scalar('Score/High_Score', self.record, self.n_games)
@@ -161,7 +161,7 @@ def test(game, args):
     
     while agent.n_games != args.max_games:
         state_old = agent.get_state()
-        dists = actor(t(state_old).to(agent.device))
+        dists = actorcritic(t(state_old).to(agent.device))[0]
         actions = dists.sample().detach().cpu().data.numpy()
         actions_clipped = np.clip(actions, -1, 1) #self.env.action_space.low.min(), env.action_space.high.max())
         
@@ -184,8 +184,8 @@ if __name__ == '__main__':
     parser.add_argument("--test", action="store_true", help="playing the game with a trained agent")
     parser.add_argument("-d", "--difficulty", type=str, default="EASY", choices=["EASY", "MEDIUM", "HARD"], help="select difficulty of the game")
     parser.add_argument("-m", "--model", type=str, default="a2c", choices=["a2c"], help="select model to train the agent")
-    parser.add_argument("-ap", "--actor_path", type=str, help="path to weights of an earlier trained model")
-    parser.add_argument("-cp", "--critic_path", type=str, help="path to weights of an earlier trained model")
+    parser.add_argument("-p", "--model_path", type=str, help="path to weights of an earlier trained model")
+    # parser.add_argument("-cp", "--critic_path", type=str, help="path to weights of an earlier trained model")
     parser.add_argument("-alr", "--actor_lr", type=float, default=4e-4, help="set learning rate for training the model")
     parser.add_argument("-clr", "--critic_lr", type=float, default=4e-3, help="set learning rate for training the model")
     parser.add_argument("-g", "--gamma", type=float, default=0.9, help="set discount factor for q learning")
@@ -214,19 +214,18 @@ if __name__ == '__main__':
     # config
     state = agent.get_state() #env.observation_space.shape[0]
     n_actions = 3 #env.action_space.shape[0]
-
     
-    actor = Actor(state.shape[0], n_actions, activation=Mish).to(agent.device)
-    critic = Critic(state.shape[0], activation=Mish).to(agent.device)
-    if (args.actor_path and args.critic_path) or args.test:
-        actor.load_state_dict(torch.load(args.actor_path))
-        critic.load_state_dict(torch.load(args.critic_path))
+    actorcritic = ActorCritic(state.shape[0], n_actions, activation=Mish).to(agent.device)
+    # critic = Critic(state.shape[0], activation=Mish).to(agent.device)
+    if (args.model_path) or args.test:
+        actorcritic.load_state_dict(torch.load(args.model_path))
+        # critic.load_state_dict(torch.load(args.critic_path))
 
     if args.test:
         test(game, args)
     else:
 
-        learner = A2CLearner(actor, critic, agent.device, gamma=args.gamma, entropy_beta=0,
+        learner = A2CLearner(actorcritic, agent.device, gamma=args.gamma, entropy_beta=0,
                     actor_lr=args.actor_lr, critic_lr=args.critic_lr, max_grad_norm=0.5, batch_size = args.batch_size)
         # runner = Runner(env)
         ###########
