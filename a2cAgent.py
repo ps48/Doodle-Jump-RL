@@ -56,9 +56,6 @@ class Runner():
         self.gamma = args.gamma
         self.batch_size = args.batch_size
         self.record = 0
-
-        # if args.model_path or args.test:
-        #     self.model.load_state_dict(torch.load(args.model_path))
     
     def reset(self):
         self.episode_reward = 0
@@ -128,6 +125,7 @@ class Runner():
             
             if self.done:
                 self.n_games += 1
+                learner.lastlaegam = 0
                 self.episode_rewards.append(self.episode_reward)
                 if len(self.episode_rewards) % 10 == 0:
                     print("episode:", len(self.episode_rewards), ", episode reward:", self.episode_reward)
@@ -153,6 +151,32 @@ class Runner():
 
         return memory
 
+
+def test(game, args):
+    if args.macos:
+        os.environ['KMP_DUPLICATE_LIB_OK']='True'
+    record = 0
+    agent = Runner(game)
+    print("Now testing")
+    
+    while agent.n_games != args.max_games:
+        state_old = agent.get_state()
+        dists = actor(t(state_old).to(agent.device))
+        actions = dists.sample().detach().cpu().data.numpy()
+        actions_clipped = np.clip(actions, -1, 1) #self.env.action_space.low.min(), env.action_space.high.max())
+        
+        final_move = [0,0,0]
+        final_move[np.argmax(actions_clipped)] = 1
+        reward, done, score = game.playStep(final_move)
+        # final_move = agent.get_action(state_old, test_mode=True)
+        # reward, done, score = game.playStep(final_move)
+        if done:
+            agent.n_games += 1
+            game.gameReboot()
+            if score > record:
+                record = score
+            print('Game', agent.n_games, 'Score', score, 'Record:', record)
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='RL Agent for Doodle Jump')
     parser.add_argument("--macos", action="store_true", help="select model to train the agent")
@@ -160,7 +184,8 @@ if __name__ == '__main__':
     parser.add_argument("--test", action="store_true", help="playing the game with a trained agent")
     parser.add_argument("-d", "--difficulty", type=str, default="EASY", choices=["EASY", "MEDIUM", "HARD"], help="select difficulty of the game")
     parser.add_argument("-m", "--model", type=str, default="a2c", choices=["a2c"], help="select model to train the agent")
-    parser.add_argument("-p", "--model_path", type=str, help="path to weights of an earlier trained model")
+    parser.add_argument("-ap", "--actor_path", type=str, help="path to weights of an earlier trained model")
+    parser.add_argument("-cp", "--critic_path", type=str, help="path to weights of an earlier trained model")
     parser.add_argument("-alr", "--actor_lr", type=float, default=4e-4, help="set learning rate for training the model")
     parser.add_argument("-clr", "--critic_lr", type=float, default=4e-3, help="set learning rate for training the model")
     parser.add_argument("-g", "--gamma", type=float, default=0.9, help="set discount factor for q learning")
@@ -189,24 +214,33 @@ if __name__ == '__main__':
     # config
     state = agent.get_state() #env.observation_space.shape[0]
     n_actions = 3 #env.action_space.shape[0]
+
+    
     actor = Actor(state.shape[0], n_actions, activation=Mish).to(agent.device)
     critic = Critic(state.shape[0], activation=Mish).to(agent.device)
+    if (args.actor_path and args.critic_path) or args.test:
+        actor.load_state_dict(torch.load(args.actor_path))
+        critic.load_state_dict(torch.load(args.critic_path))
 
-    learner = A2CLearner(actor, critic, agent.device, gamma=args.gamma, entropy_beta=0,
-                 actor_lr=args.actor_lr, critic_lr=args.critic_lr, max_grad_norm=0.5, batch_size = args.batch_size)
-    # runner = Runner(env)
-    ###########
-    steps_on_memory = 16
-    episodes = 500
-    episode_length = 200
-    total_steps = (episode_length*episodes)//steps_on_memory
-    # record = 0
-    while agent.n_games != args.max_games:
-        memory = agent.run(steps_on_memory)
-        learner.learn(memory, agent.steps, writer, discount_rewards=False)
-    
-    writer.add_hparams(hparam_dict=vars(args),
-                           metric_dict={'mean_reward': agent.mean_reward,
-                                        'high_score': agent.record,
-                                        'mean_score': agent.mean_score
-                                        })
+    if args.test:
+        test(game, args)
+    else:
+
+        learner = A2CLearner(actor, critic, agent.device, gamma=args.gamma, entropy_beta=0,
+                    actor_lr=args.actor_lr, critic_lr=args.critic_lr, max_grad_norm=0.5, batch_size = args.batch_size)
+        # runner = Runner(env)
+        ###########
+        steps_on_memory = 16
+        episodes = 500
+        episode_length = 200
+        total_steps = (episode_length*episodes)//steps_on_memory
+        # record = 0
+        while agent.n_games != args.max_games:
+            memory = agent.run(steps_on_memory)
+            learner.learn(memory, agent.steps, writer, discount_rewards=False)
+        
+        writer.add_hparams(hparam_dict=vars(args),
+                            metric_dict={'mean_reward': agent.mean_reward,
+                                            'high_score': agent.record,
+                                            'mean_score': agent.mean_score
+                                            })

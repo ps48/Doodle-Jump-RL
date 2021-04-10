@@ -89,13 +89,23 @@ class A2CLearner():
 
     def learn(self, memory, steps, writer, discount_rewards=True):
         actions, rewards, states, next_states, dones = process_memory(memory, self.batch_size, self.device, self.gamma, discount_rewards)
-
+        
         if discount_rewards:
             td_target = rewards
         else:
             td_target = rewards + self.gamma * self.critic(next_states) * (1 - dones)
         value = self.critic(states)
-        advantage = td_target - value
+        advantage = td_target - value #delta
+        # delta = td_target - value
+        # advantage = self.lastgaelam = delta + self.gamma*self.lam*(1-dones)*self.lastgaelam
+
+        # for t in reversed(range(steps)):
+        #     if t==steps-1:
+        #         nextnonterminal = 1 - dones[t]
+        #         nextsteps = self.critic(next_states)
+        #     else:
+        #         nextnonterminal = 1 - dones[t]
+
 
         # actor
         norm_dists = self.actor(states)
