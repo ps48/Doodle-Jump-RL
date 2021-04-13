@@ -46,7 +46,8 @@ class DoodleJump:
         self.direction = 0
         self.playerx = 400
         self.playery = 450
-        self.platforms = [[400, 500, 0, 0]]
+        self.platforms = [[400, 500, 0, 0], [400, 400, 0, 0], [400, 300, 0, 0], [400, 200, 0, 0],
+                            [400, 100, 0, 0], [400, 0, 0, 0], [400, -100, 0, 0], [400, -200, 0, 0]]
         self.springs = []
         self.monsters =[]
         self.cameray = 0
@@ -367,7 +368,8 @@ class DoodleJump:
         self.die = 0
         self.springs = []
         self.monsters =[]
-        self.platforms = [[400, 500, 0, 0]]
+        self.platforms = [[400, 500, 0, 0], [400, 400, 0, 0], [400, 300, 0, 0], [400, 200, 0, 0],
+                            [400, 100, 0, 0], [400, 0, 0, 0], [400, -100, 0, 0], [400, -200, 0, 0]]
         self.generatePlatforms()
         self.playerx = 400
         self.playery = 400
