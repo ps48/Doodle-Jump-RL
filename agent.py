@@ -59,7 +59,7 @@ class Agent:
 
         if args.model_path or args.test:
             self.model.load_state_dict(torch.load(args.model_path))
-        self.trainer = QTrainer(model=self.model, lr=self.lr, gamma=self.gamma, device=self.device)
+        self.trainer = QTrainer(model=self.model, lr=self.lr, gamma=self.gamma, device=self.device, num_channels=self.image_c)
         
         
     def preprocess(self, state):
@@ -129,10 +129,7 @@ class Agent:
         return False
         
     def get_action(self, state, test_mode=False):
-        # random moves: tradeoff exploration / exploitation
-        # self.epsilon = self.exploration - self.n_games
         final_move = [0,0,0]  
-        # if random.randint(0, 200) < self.epsilon and not test_mode:
         if self.should_explore(test_mode):
             move = random.randint(0, 2)
             final_move[move] = 1
@@ -225,18 +222,39 @@ def test(game, args):
     if args.macos:
         os.environ['KMP_DUPLICATE_LIB_OK']='True'
     record = 0
+    cum_score = 0
     agent = Agent(args)
     print("Now playing")
     
-    while agent.n_games != args.max_games:
+    while agent.n_games < args.max_games:
         state_old = agent.get_state(game)
         final_move = agent.get_action(state_old, test_mode=True)
         reward, done, score = game.playStep(final_move)
+        state_new = agent.get_state(game)
+        
         if done:
+            agent.n_games += 1
+            cum_score += score
             game.gameReboot()
             if score > record:
                 record = score
-            print('Game', agent.n_games, 'Score', score, 'Record:', record)
+            print('Game', agent.n_games, 'Score', score, 'Record:', record, 'Mean Score:', cum_score/agent.n_games)
+        
+        if args.attack:
+            # Every alternative prediction is done on adversarial state rather than the actual game state
+            state_old = agent.get_state(game)
+            adv_state = agent.trainer.create_adv_state(state_old, final_move, reward, state_new, [done])
+            final_move = agent.get_action(adv_state, test_mode=True)
+            reward, done, score = game.playStep(final_move)
+            state_new = agent.get_state(game)
+            
+            if done:
+                agent.n_games += 1
+                cum_score += score
+                game.gameReboot()
+                if score > record:
+                    record = score
+                print('Game', agent.n_games, 'Score', score, 'Record:', record, 'Mean Score:', cum_score/agent.n_games)
     
 
 if __name__ == "__main__":
@@ -264,6 +282,7 @@ if __name__ == "__main__":
     parser.add_argument("--explore", type=str, default="epsilon_g", choices=["epsilon_g","epsilon_g_decay_exp","epsilon_g_decay_exp_cur"], help="select the exploration vs exploitation tradeoff")
     parser.add_argument("--decay_factor", type=float, default=0.9, help="set the decay factor for exploration")
     parser.add_argument("--epsilon", type=float, default=0.8, help="set the epsilon value for exploration")
+    parser.add_argument("--attack", action="store_true", help="use fast fgsm attack to manipulate the input state")
     args = parser.parse_args()
     
     game = DoodleJump(difficulty=args.difficulty, server=args.server, reward_type=args.reward_type)
