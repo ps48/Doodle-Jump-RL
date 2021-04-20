@@ -59,7 +59,8 @@ class Agent:
 
         if args.model_path or args.test:
             self.model.load_state_dict(torch.load(args.model_path))
-        self.trainer = QTrainer(model=self.model, lr=self.lr, gamma=self.gamma, device=self.device, num_channels=self.image_c)
+        self.trainer = QTrainer(model=self.model, lr=self.lr, gamma=self.gamma, device=self.device, 
+                                num_channels=self.image_c, attack_eps=args.attack_eps)
         
         
     def preprocess(self, state):
@@ -242,9 +243,9 @@ def test(game, args):
         
         if args.attack:
             # Every alternative prediction is done on adversarial state rather than the actual game state
-            state_old = agent.get_state(game)
-            adv_state = agent.trainer.create_adv_state(state_old, final_move, reward, state_new, [done])
-            final_move = agent.get_action(adv_state, test_mode=True)
+            adv_manip = agent.trainer.create_adv_state(state_old, final_move, reward, state_new, [done]) #manipulated
+            state_old = agent.get_state(game) # original
+            final_move = agent.get_action(torch.tensor(state_old).to(agent.device) + adv_manip, test_mode=True)
             reward, done, score = game.playStep(final_move)
             state_new = agent.get_state(game)
             
@@ -283,6 +284,7 @@ if __name__ == "__main__":
     parser.add_argument("--decay_factor", type=float, default=0.9, help="set the decay factor for exploration")
     parser.add_argument("--epsilon", type=float, default=0.8, help="set the epsilon value for exploration")
     parser.add_argument("--attack", action="store_true", help="use fast fgsm attack to manipulate the input state")
+    parser.add_argument("--attack_eps", type=float, default=0.3, help="epsilon value for the fgsm attack")
     args = parser.parse_args()
     
     game = DoodleJump(difficulty=args.difficulty, server=args.server, reward_type=args.reward_type)

@@ -7,7 +7,7 @@ import os
 
 
 class QTrainer:
-    def __init__(self, model, lr, gamma, device, num_channels):
+    def __init__(self, model, lr, gamma, device, num_channels, attack_eps):
         super(QTrainer, self). __init__()
         self.lr = lr
         self.gamma = gamma
@@ -27,8 +27,8 @@ class QTrainer:
         self.std = torch.tensor(imagenet_std).view(num_channels, 1, 1).cuda()
         self.upper_limit = ((1 - self.mu)/ self.std)
         self.lower_limit = ((0 - self.mu)/ self.std)
-        self.attack_eps = 0.1 / self.std
-        self.attack_step = 0.125 / self.std
+        self.attack_eps = attack_eps / self.std
+        self.attack_step = (1.25*attack_eps) / self.std
                 
     def train_step(self, state, action, reward, next_state, done):
         state = torch.tensor(state, dtype=torch.float).to(self.device)
@@ -115,4 +115,4 @@ class QTrainer:
         delta.data = self.clamp(delta + self.attack_step * torch.sign(grad), -self.attack_eps, self.attack_eps)
         delta.data[:state.size(0)] = self.clamp(delta[:state.size(0)], self.lower_limit - state, self.upper_limit - state)
         delta = delta.detach()
-        return state + delta[:state.size(0)]
+        return delta[:state.size(0)]
