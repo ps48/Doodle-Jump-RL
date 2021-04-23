@@ -227,35 +227,31 @@ def test(game, args):
     agent = Agent(args)
     print("Now playing")
     
-    while agent.n_games < args.max_games:
-        state_old = agent.get_state(game)
-        final_move = agent.get_action(state_old, test_mode=True)
-        reward, done, score = game.playStep(final_move)
-        state_new = agent.get_state(game)
-        
+    f = open("test_logs.txt", "w")
+    f.write("Now playing")
+    f.close()
+    
+    while agent.n_games < args.max_games:        
+        if args.attack:
+            state = agent.get_state(game) # original
+            adv_manip = agent.trainer.create_adv_state(state) #manipulated
+            final_move = agent.get_action(torch.tensor(state).to(agent.device) + adv_manip, test_mode=True)
+            reward, done, score = game.playStep(final_move)
+        else:
+            state_old = agent.get_state(game)
+            final_move = agent.get_action(state_old, test_mode=True)
+            reward, done, score = game.playStep(final_move)
+            
         if done:
             agent.n_games += 1
             cum_score += score
             game.gameReboot()
             if score > record:
                 record = score
+            f = open("test_logs.txt", "a")
+            f.write('Game: '+str(agent.n_games)+' Score: '+str(score)+' Record: '+str(record)+' Mean Score: '+str(cum_score/agent.n_games)+'\n')
+            f.close()
             print('Game', agent.n_games, 'Score', score, 'Record:', record, 'Mean Score:', cum_score/agent.n_games)
-        
-        if args.attack:
-            # Every alternative prediction is done on adversarial state rather than the actual game state
-            adv_manip = agent.trainer.create_adv_state(state_old, final_move, reward, state_new, [done]) #manipulated
-            state_old = agent.get_state(game) # original
-            final_move = agent.get_action(torch.tensor(state_old).to(agent.device) + adv_manip, test_mode=True)
-            reward, done, score = game.playStep(final_move)
-            state_new = agent.get_state(game)
-            
-            if done:
-                agent.n_games += 1
-                cum_score += score
-                game.gameReboot()
-                if score > record:
-                    record = score
-                print('Game', agent.n_games, 'Score', score, 'Record:', record, 'Mean Score:', cum_score/agent.n_games)
     
 
 if __name__ == "__main__":
