@@ -107,8 +107,16 @@ class QTrainer:
         # img = np.squeeze(img)
         # cv2.imwrite("adv_frames/og_"+str(self.ctr)+".jpg", img)
         
-        # img = (state + delta[:state.size(0)]).cpu().numpy()
-        # img = ((img* self.imagenet_std)+self.imagenet_mean)*255
-        # img = np.squeeze(img)
+        
+
+        img = (state + delta[:state.size(0)]).cpu().numpy()
+        img = ((img* self.imagenet_std)+self.imagenet_mean)*255
+        img = np.squeeze(img)
+        img = cv2.resize(img, (200, 200))
+        cv2.imwrite("adv_frames/temp_img.jpg", img)
+        img = cv2.imread("adv_frames/temp_img.jpg")
+        img = cv2.flip(img, 1)
+        cv2.imshow("adv_image", img)
+        # cv2.waitKey(1)
         # cv2.imwrite("adv_frames/"+str(self.ctr)+".jpg", img)
         return delta[:state.size(0)]
