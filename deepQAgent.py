@@ -8,7 +8,7 @@ import torch
 from collections import deque
 from game.doodlejump import DoodleJump
 from model.networks import Deep_QNet, Deep_RQNet, DQ_Resnet18, DQ_Mobilenet, DQ_Mnasnet
-from model.trainer import QTrainer
+from model.deepQTrainer import QTrainer
 from helper import write_model_params
 from torch.utils.tensorboard import SummaryWriter
 
