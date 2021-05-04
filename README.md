@@ -1,6 +1,8 @@
 # Doodle-Jump-RL
 ## **USC - CSCI 527** Under Prof. Micheal Zyda
 Game Bot Reinforcement Learning and Adversarial Attack 
+## [Jump to our webpage](https://pranavmswamy.github.io/doodle-jump-website/)
+<img src="game\assets\giphy_end.gif" width="150" height="150"/>
 
 ## Getting Started
 1. Clone the repository
